@@ -750,3 +750,9 @@ body {
   margin-top: auto;
   text-align: center;
 }
+.footer-gh {
+  display: inline-flex; align-items: center; gap: .35rem;
+  color: var(--muted); text-decoration: none;
+  font-weight: 600; transition: color .1s;
+}
+.footer-gh:hover { color: var(--primary); }
