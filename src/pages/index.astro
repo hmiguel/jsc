@@ -1,0 +1,823 @@
+---
+import '../styles/main.css';
+import rawArchive from '../data/totoloto_archive.json';
+
+interface Draw { draw: string; date: string; numbers: number[]; lucky: number; }
+const archive = rawArchive as Draw[];
+const N = archive.length;
+
+// ── Odd / Even ───────────────────────────────
+const oddDist = [0,1,2,3,4,5].map(k => ({
+  k,
+  count: archive.filter(d => d.numbers.filter(n => n % 2 !== 0).length === k).length,
+}));
+const avgOdd  = +(archive.reduce((s,d) => s + d.numbers.filter(n => n % 2 !== 0).length, 0) / N).toFixed(1);
+const avgEven = +(5 - avgOdd).toFixed(1);
+
+// ── High / Low (25–49 = high) ────────────────
+const hiLoDist = [0,1,2,3,4,5].map(k => ({
+  k,
+  count: archive.filter(d => d.numbers.filter(n => n >= 25).length === k).length,
+}));
+const avgHigh = +(archive.reduce((s,d) => s + d.numbers.filter(n => n >= 25).length, 0) / N).toFixed(1);
+const avgLow  = +(5 - avgHigh).toFixed(1);
+
+// ── Sums ─────────────────────────────────────
+const sums   = archive.map(d => d.numbers.reduce((a,b) => a+b, 0));
+const sumMin = Math.min(...sums);
+const sumMax = Math.max(...sums);
+const sumAvg = Math.round(sums.reduce((a,b) => a+b, 0) / N);
+const BUCKET = 20, BMIN = 15, NBUCKETS = 12;
+const sumHist = Array.from({length: NBUCKETS}, (_, i) => {
+  const lo = BMIN + i * BUCKET;
+  return { lo, hi: lo + BUCKET, count: sums.filter(s => s >= lo && s < lo + BUCKET).length };
+});
+const sumHistMax = Math.max(...sumHist.map(b => b.count));
+
+// ── Zones (decades) ──────────────────────────
+const zones = [
+  {label:'1–10',  lo:1,  hi:10},
+  {label:'11–20', lo:11, hi:20},
+  {label:'21–30', lo:21, hi:30},
+  {label:'31–40', lo:31, hi:40},
+  {label:'41–49', lo:41, hi:49},
+];
+const zoneStats = zones.map(z => ({
+  ...z,
+  avg: +(archive.reduce((s,d) => s + d.numbers.filter(n => n >= z.lo && n <= z.hi).length, 0) / N).toFixed(2),
+}));
+const zoneMax = Math.max(...zoneStats.map(z => z.avg));
+
+// ── Consecutive pairs ────────────────────────
+const consecDraws = archive.filter(d => {
+  const s = [...d.numbers].sort((a,b) => a-b);
+  return s.some((_,i) => i > 0 && s[i] - s[i-1] === 1);
+}).length;
+const consecPct = Math.round(consecDraws / N * 100);
+
+// ── Carry-over between consecutive draws ────────
+const carryDist = [0,1,2,3,4,5].map(k => {
+  let count = 0;
+  for (let i = 1; i < archive.length; i++) {
+    const prev = new Set(archive[i-1].numbers);
+    if (archive[i].numbers.filter(n => prev.has(n)).length === k) count++;
+  }
+  return { k, count };
+});
+const carryPairs = archive.length - 1;
+const avgCarry = +(archive.slice(1).reduce((s, d, i) => {
+  const prev = new Set(archive[i].numbers);
+  return s + d.numbers.filter(n => prev.has(n)).length;
+}, 0) / carryPairs).toFixed(2);
+const luckyCarry = archive.slice(1).filter((d, i) => d.lucky === archive[i].lucky).length;
+const luckyCarryPct = Math.round(luckyCarry / carryPairs * 100);
+
+// ── Top co-occurring pairs ────────────────────
+const pairFreq: Record<string, number> = {};
+for (const d of archive) {
+  const n = d.numbers;
+  for (let i = 0; i < n.length; i++)
+    for (let j = i+1; j < n.length; j++)
+      { const k = `${n[i]}–${n[j]}`; pairFreq[k] = (pairFreq[k]||0) + 1; }
+}
+const sortedPairs = Object.entries(pairFreq).sort((a,b) => b[1]-a[1]);
+const topPairs    = sortedPairs.slice(0, 12).map(([pair, count]) => ({pair, count}));
+const bottomPairs = sortedPairs.slice(-12).reverse().map(([pair, count]) => ({pair, count}));
+
+interface NumStat {
+  number:   number;
+  draws:    number;
+  pct:      number;
+  lastDraw: string;
+  lastDate: string;
+  absences: number;
+}
+
+let mainStats:  NumStat[] = [];
+let luckyStats: NumStat[] = [];
+let updatedAt = '';
+
+try {
+  const res = await fetch('https://www.jogossantacasa.pt/web/SCEstatisticas/totolotoN', {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' },
+    signal: AbortSignal.timeout(8000),
+  });
+  const buf  = await res.arrayBuffer();
+  const html = new TextDecoder('iso-8859-1').decode(buf);
+
+  const rowRx = /<ul class="colums[^"]*">\s*<li>(\d+)<\/li><li>(\d+)<\/li><li>([\d,]+)<\/li><li>([^<]+)<\/li><li>([^<]+)<\/li><li>(\d+)<\/li>/g;
+  const all: NumStat[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = rowRx.exec(html)) !== null) {
+    all.push({
+      number:   parseInt(m[1]),
+      draws:    parseInt(m[2]),
+      pct:      parseFloat(m[3].replace(',', '.')),
+      lastDraw: m[4].trim(),
+      lastDate: m[5].trim(),
+      absences: parseInt(m[6]),
+    });
+  }
+  mainStats  = all.slice(0, 49);
+  luckyStats = all.slice(49);
+
+  const dm = html.match(/Dados atualizados em: ([\d/]+ [\d:]+)/);
+  updatedAt = dm ? dm[1] : '';
+} catch (_) {}
+
+const hasData   = mainStats.length === 49;
+const maxMain   = hasData ? Math.max(...mainStats.map(s => s.draws)) : 1;
+const maxLucky  = luckyStats.length > 0 ? Math.max(...luckyStats.map(s => s.draws)) : 1;
+
+const totalSorteios = hasData
+  ? Math.round(mainStats.reduce((sum, s) => sum + s.draws, 0) / 5)
+  : 0;
+const mostFrequent = hasData ? mainStats.reduce((a, b) => b.draws    > a.draws    ? b : a) : null;
+const mostAbsent   = hasData ? mainStats.reduce((a, b) => b.absences > a.absences ? b : a) : null;
+const hotMain      = hasData ? [...mainStats].sort((a, b) => b.draws    - a.draws)    .slice(0, 5) : [];
+const coldMain     = hasData ? [...mainStats].sort((a, b) => b.absences - a.absences) .slice(0, 5) : [];
+const hotLucky     = luckyStats.length > 0 ? [...luckyStats].sort((a, b) => b.draws    - a.draws)    .slice(0, 5) : [];
+const coldLucky    = luckyStats.length > 0 ? [...luckyStats].sort((a, b) => b.absences - a.absences) .slice(0, 5) : [];
+
+// ── Last draw ────────────────────────────────
+const lastDraw = archive[archive.length - 1];
+
+// ── Smart picker data ────────────────────────
+const sortedSums = [...sums].sort((a,b) => a-b);
+const sumP10 = sortedSums[Math.floor(N * 0.10)];
+const sumP90 = sortedSums[Math.floor(N * 0.90)];
+const mainFreqW  = hasData ? mainStats.map(s => s.draws)        : Array(49).fill(1);
+const luckyFreqW = luckyStats.length > 0 ? luckyStats.map(s => s.draws)        : Array(13).fill(1);
+const mainAbsW   = hasData ? mainStats.map(s => s.absences + 1) : Array(49).fill(1);
+const luckyAbsW  = luckyStats.length > 0 ? luckyStats.map(s => s.absences + 1) : Array(13).fill(1);
+
+function cellStyle(draws: number, max: number, isLucky: boolean) {
+  const intensity = draws / max;
+  const alpha     = (intensity * 0.78 + 0.04).toFixed(2);
+  const rgb       = isLucky ? '230,117,65' : '0,141,208';
+  const textColor = intensity > 0.38 ? '#fff' : '#111';
+  return `background:rgba(${rgb},${alpha});color:${textColor}`;
+}
+---
+
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Totoloto · Gerador de Chaves</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/jetbrains-mono.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/plus-jakarta-sans.woff2">
+</head>
+<body>
+
+<div class="page">
+
+  <div class="heading">
+    <h1>Totoloto</h1>
+  </div>
+
+  <div class="layout">
+  <!-- ── Col 1: generators ────────────────────── -->
+  <div class="layout-col">
+
+  <!-- ── Generator ───────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-label">Gerar chaves</span>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label for="lines-input">Número de chaves</label>
+        <input id="lines-input" type="number" min="1" max="20" value="1" />
+      </div>
+      <button id="generate-btn" class="btn-primary" style="margin-top:.75rem">
+        Gerar números
+      </button>
+    </div>
+    <div id="results"></div>
+  </div>
+
+  <!-- ── Smart picker ────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-label">Aposta inteligente</span>
+    </div>
+    <div class="card-body">
+      <div style="margin-bottom:.75rem">
+        <div class="field-label">Estratégia</div>
+        <div class="strategy-pills" id="strategy-pills">
+          <button class="strategy-pill active" data-strategy="equilibrada">Equilibrada</button>
+          <button class="strategy-pill" data-strategy="quente">Quente</button>
+          <button class="strategy-pill" data-strategy="fria">Fria</button>
+        </div>
+        <div class="strategy-desc" id="strategy-desc">
+          Filtra combinações que seguem os padrões mais frequentes: 2–3 ímpares, 2–3 altos, soma entre {sumP10} e {sumP90}.
+        </div>
+      </div>
+      <!-- Last draw reference -->
+      <div class="last-draw-row">
+        <span class="last-draw-label">Último sorteio ({lastDraw.draw} · {lastDraw.date})</span>
+        <div class="last-draw-balls">
+          {lastDraw.numbers.map(n => <span class="last-draw-ball">{n}</span>)}
+          <span class="balls-sep">+</span>
+          <span class="last-draw-ball last-draw-ball--lucky">{lastDraw.lucky}</span>
+        </div>
+      </div>
+
+      <!-- Avoid repeats toggle -->
+      <label class="avoid-row">
+        <input type="checkbox" id="avoid-repeats" checked />
+        <span>Evitar repetições do último sorteio</span>
+      </label>
+
+      <div class="field" style="margin-top:.75rem">
+        <label for="smart-lines-input">Número de chaves</label>
+        <input id="smart-lines-input" type="number" min="1" max="20" value="1" />
+      </div>
+      <button id="smart-btn" class="btn-primary" style="margin-top:.75rem">
+        Gerar aposta inteligente
+      </button>
+    </div>
+    <div id="smart-results"></div>
+  </div>
+
+  </div><!-- /layout-col left -->
+
+  <!-- ── Col 2: historical stats ──────────────── -->
+  <div class="layout-col">
+
+  <!-- ── Statistics ──────────────────────────── -->
+  {hasData && (
+    <div class="card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+        <span class="card-label">Estatísticas históricas</span>
+        {updatedAt && <span class="stats-updated">{updatedAt}</span>}
+      </div>
+
+      <!-- Overview -->
+      <div class="stat-chips">
+        <div class="stat-chip">
+          <div class="stat-chip-label">Sorteios</div>
+          <div class="stat-chip-val">{totalSorteios.toLocaleString('pt')}</div>
+        </div>
+        {mostFrequent && (
+          <div class="stat-chip">
+            <div class="stat-chip-label">Mais frequente</div>
+            <div class="stat-chip-val" style="color:var(--blue)">{mostFrequent.number}</div>
+            <div class="stat-chip-sub">{mostFrequent.draws}× · {mostFrequent.pct.toFixed(2)}%</div>
+          </div>
+        )}
+        {mostAbsent && (
+          <div class="stat-chip">
+            <div class="stat-chip-label">Mais ausente</div>
+            <div class="stat-chip-val" style="color:var(--primary)">{mostAbsent.number}</div>
+            <div class="stat-chip-sub">{mostAbsent.absences} sorteios</div>
+          </div>
+        )}
+      </div>
+
+      <!-- Main number heat map -->
+      <div class="freq-section">
+        <div class="freq-section-label">Frequência — Números (1–49)</div>
+        <div class="freq-grid">
+          {mainStats.map(s => (
+            <div
+              class="freq-cell"
+              style={cellStyle(s.draws, maxMain, false)}
+              data-num={s.number}
+              data-draws={s.draws}
+              data-pct={s.pct.toFixed(2)}
+              data-last-draw={s.lastDraw}
+              data-last-date={s.lastDate}
+              data-absences={s.absences}
+              data-type="main"
+            >
+              <span class="freq-num">{s.number}</span>
+              <span class="freq-count">{s.draws}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Lucky number heat map -->
+      {luckyStats.length > 0 && (
+        <div class="freq-section">
+          <div class="freq-section-label">Frequência — Número da Sorte (1–13)</div>
+          <div class="freq-row">
+            {luckyStats.map(s => (
+              <div
+                class="freq-cell"
+                style={cellStyle(s.draws, maxLucky, true)}
+                data-num={s.number}
+                data-draws={s.draws}
+                data-pct={s.pct.toFixed(2)}
+                data-last-draw={s.lastDraw}
+                data-last-date={s.lastDate}
+                data-absences={s.absences}
+                data-type="lucky"
+              >
+                <span class="freq-num freq-num-sm">{s.number}</span>
+                <span class="freq-count">{s.draws}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Hot / Cold -->
+      <div class="freq-section">
+
+        <!-- Main numbers -->
+        <div class="hc-group-label">Números (1–49)</div>
+        <div class="hot-cold-grid">
+          <div>
+            <div class="hot-cold-label" style="color:var(--blue)">▲ Mais frequentes</div>
+            <div class="number-tags">
+              {hotMain.map(s => (
+                <div class="number-tag" style="background:var(--blue);color:#fff;border-color:var(--blue)">
+                  <span>{s.number}</span>
+                  <small>{s.draws}×</small>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div class="hot-cold-label" style="color:var(--muted)">▼ Mais ausentes</div>
+            <div class="number-tags">
+              {coldMain.map(s => (
+                <div class="number-tag">
+                  <span>{s.number}</span>
+                  <small>{s.absences} sorteios</small>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <!-- Lucky numbers -->
+        {hotLucky.length > 0 && (
+          <div class="hc-lucky">
+            <div class="hc-group-label">Número da Sorte (1–13)</div>
+            <div class="hot-cold-grid">
+              <div>
+                <div class="hot-cold-label" style="color:var(--primary)">▲ Mais frequentes</div>
+                <div class="number-tags">
+                  {hotLucky.map(s => (
+                    <div class="number-tag" style="background:var(--primary);color:#fff;border-color:var(--primary)">
+                      <span>{s.number}</span>
+                      <small>{s.draws}×</small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div class="hot-cold-label" style="color:var(--muted)">▼ Mais ausentes</div>
+                <div class="number-tags">
+                  {coldLucky.map(s => (
+                    <div class="number-tag">
+                      <span>{s.number}</span>
+                      <small>{s.absences} sorteios</small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )}
+
+  </div><!-- /layout-col col2 -->
+
+  <!-- ── Col 3: patterns ───────────────────────── -->
+  <div class="layout-col layout-col--patterns">
+
+  <!-- ── Patterns ────────────────────────────── -->
+  <div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+      <span class="card-label">Padrões históricos</span>
+      <span class="stats-updated">{N.toLocaleString('pt')} sorteios</span>
+    </div>
+
+    <!-- Overview chips -->
+    <div class="stat-chips" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-chip has-tip" data-tip="Média de números ímpares por chave. O valor estatisticamente esperado é 2,5 em 5 números. Valores acima indicam tendência histórica para ímpares.">
+        <div class="stat-chip-label">Méd. ímpares</div>
+        <div class="stat-chip-val">{avgOdd}</div>
+        <div class="stat-chip-sub">de 5</div>
+      </div>
+      <div class="stat-chip has-tip" data-tip="Média de números altos (25–49) por chave. O esperado é 2,5. Valores acima de 2,5 indicam tendência histórica para a metade superior do intervalo.">
+        <div class="stat-chip-label">Méd. altos</div>
+        <div class="stat-chip-val">{avgHigh}</div>
+        <div class="stat-chip-sub">25–49</div>
+      </div>
+      <div class="stat-chip has-tip" data-tip={`Média da soma dos 5 números por sorteio. A soma teórica varia entre 15 (1+2+3+4+5) e 235 (45+…+49), com centro em 125. Mínimo histórico: ${sumMin}. Máximo: ${sumMax}.`}>
+        <div class="stat-chip-label">Soma média</div>
+        <div class="stat-chip-val">{sumAvg}</div>
+        <div class="stat-chip-sub">{sumMin}–{sumMax}</div>
+      </div>
+      <div class="stat-chip has-tip" data-tip="Percentagem de sorteios com pelo menos um par de números consecutivos (ex: 14 e 15). Estatisticamente esperado em ~67% dos sorteios aleatórios — valores próximos confirmam aleatoriedade.">
+        <div class="stat-chip-label">Com consecutivos</div>
+        <div class="stat-chip-val">{consecPct}%</div>
+        <div class="stat-chip-sub">dos sorteios</div>
+      </div>
+    </div>
+
+    <!-- Carry-over between draws -->
+    <div class="freq-section">
+      <div class="freq-section-label has-tip" data-tip={`Quantos números do sorteio anterior voltaram a sair no sorteio seguinte. Média histórica: ${avgCarry} números repetidos nos 5 principais. O número da sorte repete em ${luckyCarryPct}% dos sorteios consecutivos.`}>
+        Repetições entre sorteios consecutivos
+      </div>
+
+      <!-- Main numbers -->
+      <div class="carry-sub-label">Números principais (0–5)</div>
+      <div class="carry-grid">
+        {carryDist.map(({k, count}) => {
+          const pct = count / carryPairs * 100;
+          return (
+            <div class={`carry-cell ${k === 0 ? 'carry-cell--highlight' : ''}`}>
+              <div class="carry-k">{k}</div>
+              <div class="carry-bar-wrap">
+                <div class="carry-bar-fill" style={`height:${pct.toFixed(1)}%`}></div>
+              </div>
+              <div class="carry-pct">{pct.toFixed(1)}%</div>
+              <div class="carry-count">{count}×</div>
+            </div>
+          );
+        })}
+      </div>
+      <div class="carry-meta" style="margin-bottom:.85rem">
+        <span>Média: <strong>{avgCarry}</strong> repetições/sorteio</span>
+      </div>
+
+      <!-- Lucky number -->
+      <div class="carry-sub-label">Número da sorte (0–1)</div>
+      <div class="carry-grid" style="grid-template-columns:repeat(2,1fr);max-width:140px">
+        {[
+          { k: 0, count: carryPairs - luckyCarry },
+          { k: 1, count: luckyCarry },
+        ].map(({k, count}) => {
+          const pct = count / carryPairs * 100;
+          return (
+            <div class={`carry-cell ${k === 0 ? 'carry-cell--highlight carry-cell--lucky' : 'carry-cell--lucky-repeat'}`}>
+              <div class="carry-k">{k}</div>
+              <div class="carry-bar-wrap">
+                <div class="carry-bar-fill" style={`height:${pct.toFixed(1)}%`}></div>
+              </div>
+              <div class="carry-pct">{pct.toFixed(1)}%</div>
+              <div class="carry-count">{count}×</div>
+            </div>
+          );
+        })}
+      </div>
+      <div class="carry-meta" style="max-width:140px">
+        <span>Repete: <strong>{luckyCarryPct}%</strong></span>
+      </div>
+    </div>
+
+    <!-- Odd / Even distribution -->
+    <div class="freq-section">
+      <div class="freq-section-label has-tip" data-tip="Quantos sorteios tiveram exactamente 0, 1, 2, 3, 4 ou 5 números ímpares. As combinações 2í+3p e 3í+2p são as mais prováveis e tendem a dominar.">Distribuição par / ímpar por chave</div>
+      {oddDist.map(({k, count}) => {
+        const pct = count / N * 100;
+        return (
+          <div class="dist-row">
+            <span class="dist-label">{k}í {5-k}p</span>
+            <div class="dist-track">
+              <div class="dist-fill" style={`width:${pct.toFixed(1)}%;background:var(--blue)`}></div>
+            </div>
+            <span class="dist-pct">{pct.toFixed(1)}%</span>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- High / Low distribution -->
+    <div class="freq-section">
+      <div class="freq-section-label has-tip" data-tip="Quantos sorteios tiveram exactamente 0 a 5 números altos (25–49). Uma distribuição equilibrada (2+3 ou 3+2) ocorre em mais de metade dos sorteios. Extremos (0 altos ou 5 altos) são raros.">Distribuição baixo (1–24) / alto (25–49) por chave</div>
+      {hiLoDist.map(({k, count}) => {
+        const pct = count / N * 100;
+        return (
+          <div class="dist-row">
+            <span class="dist-label">{k}alt {5-k}bx</span>
+            <div class="dist-track">
+              <div class="dist-fill" style={`width:${pct.toFixed(1)}%;background:var(--primary)`}></div>
+            </div>
+            <span class="dist-pct">{pct.toFixed(1)}%</span>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- Sum histogram -->
+    <div class="freq-section">
+      <div class="freq-section-label has-tip" data-tip="Histograma da soma dos 5 números por sorteio, em intervalos de 20. A distribuição segue uma curva em sino com pico entre 95 e 155. Somas muito baixas ou muito altas são matematicamente improváveis.">Distribuição da soma dos 5 números</div>
+      {sumHist.map(({lo, hi, count}) => {
+        const pct = count / sumHistMax * 100;
+        return (
+          <div class="dist-row">
+            <span class="dist-label" style="font-size:.6rem">{lo}–{hi-1}</span>
+            <div class="dist-track">
+              <div class="dist-fill" style={`width:${pct.toFixed(1)}%;background:var(--blue)`}></div>
+            </div>
+            <span class="dist-pct">{count}</span>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- Zone analysis -->
+    <div class="freq-section">
+      <div class="freq-section-label has-tip" data-tip="Média de números sorteados em cada grupo de 10. Uma distribuição perfeitamente uniforme daria 1,0 por grupo (5 números / 5 grupos). Desvios indicam grupos historicamente mais ou menos sortudos.">Média de números por dezena</div>
+      {zoneStats.map(z => {
+        const pct = z.avg / zoneMax * 100;
+        return (
+          <div class="dist-row">
+            <span class="dist-label">{z.label}</span>
+            <div class="dist-track">
+              <div class="dist-fill" style={`width:${pct.toFixed(1)}%;background:var(--blue)`}></div>
+            </div>
+            <span class="dist-pct">{z.avg}</span>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- Top / Bottom pairs -->
+    <div class="freq-section">
+      <div class="pairs-grid">
+        <div>
+          <div class="freq-section-label has-tip" style="color:var(--blue)" data-tip="Os pares de números que apareceram juntos no mesmo sorteio com maior frequência histórica. Num universo de C(49,2)=1176 pares possíveis, o mais frequente ainda representa menos de 3% dos sorteios.">Pares mais frequentes</div>
+          <div class="pair-tags">
+            {topPairs.map(({pair, count}) => (
+              <div class="pair-tag" style="border-color:var(--blue)">
+                <span class="pair-nums">{pair}</span>
+                <span class="pair-count">{count}×</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div class="freq-section-label has-tip" style="color:var(--primary)" data-tip="Os pares de números que raramente apareceram juntos. Não significa que vão sair — a lotaria não tem memória e cada sorteio é independente dos anteriores.">Pares menos frequentes</div>
+          <div class="pair-tags">
+            {bottomPairs.map(({pair, count}) => (
+              <div class="pair-tag">
+                <span class="pair-nums">{pair}</span>
+                <span class="pair-count">{count}×</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /layout-col col3 -->
+  </div><!-- /layout -->
+
+  <footer class="footer">
+    Jogue com responsabilidade
+  </footer>
+
+</div>
+
+<script>
+  function pickNumbers(count: number, max: number): number[] {
+    const pool = Array.from({ length: max }, (_, i) => i + 1);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, count).sort((a, b) => a - b);
+  }
+
+  function renderLine(main: number[], lucky: number, index: number): string {
+    const balls    = main.map(n => `<span class="ball">${n}</span>`).join('');
+    const luckyBall = `<span class="ball ball--lucky" title="Número da sorte">${lucky}</span>`;
+    return `
+      <div class="line" aria-label="Chave ${index + 1}">
+        <span class="line-label">Chave ${index + 1}</span>
+        <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
+      </div>`;
+  }
+
+  document.getElementById('generate-btn')!.addEventListener('click', () => {
+    const input = document.getElementById('lines-input') as HTMLInputElement;
+    const count = Math.max(1, Math.min(20, parseInt(input.value, 10) || 1));
+    const results = document.getElementById('results')!;
+
+    results.innerHTML = Array.from({ length: count }, (_, i) => {
+      const main  = pickNumbers(5, 49);
+      const lucky = pickNumbers(1, 13)[0];
+      return renderLine(main, lucky, i);
+    }).join('');
+  });
+</script>
+
+<!-- ── Smart picker script ──────────────────── -->
+<script define:vars={{ mainFreqW, luckyFreqW, mainAbsW, luckyAbsW, sumP10, sumP90, lastDraw }}>
+
+  // ── Helpers ─────────────────────────────────
+  function weightedSample(weights, count) {
+    const pool = weights.map((w, i) => ({ i, w: Math.max(w, 0.01) }));
+    const result = [];
+    while (result.length < count) {
+      const total = pool.reduce((s, x) => s + x.w, 0);
+      let r = Math.random() * total;
+      for (const item of pool) {
+        r -= item.w;
+        if (r <= 0) { result.push(item.i + 1); item.w = 0; break; }
+      }
+    }
+    return result.sort((a, b) => a - b);
+  }
+
+  function pickLucky(weights) {
+    return weightedSample(weights, 1)[0];
+  }
+
+  // Equilibrada: rejection sampling with pattern filters
+  function pickEquilibrada() {
+    for (let t = 0; t < 2000; t++) {
+      const pool = Array.from({ length: 49 }, (_, i) => i + 1);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const nums = pool.slice(0, 5).sort((a, b) => a - b);
+      const odd  = nums.filter(n => n % 2 !== 0).length;
+      const high = nums.filter(n => n >= 25).length;
+      const sum  = nums.reduce((a, b) => a + b, 0);
+      const decades = new Set(nums.map(n => Math.ceil(n / 10))).size;
+      if (odd >= 2 && odd <= 3 && high >= 2 && high <= 3 && sum >= sumP10 && sum <= sumP90 && decades >= 3)
+        return nums;
+    }
+    return weightedSample(Array(49).fill(1), 5);
+  }
+
+  const strategies = {
+    equilibrada: { pick: pickEquilibrada, luckyW: luckyFreqW },
+    quente:      { pick: () => weightedSample(mainFreqW, 5), luckyW: luckyFreqW },
+    fria:        { pick: () => weightedSample(mainAbsW,  5), luckyW: luckyAbsW  },
+  };
+
+  const descs = {
+    equilibrada: `Filtra combinações que seguem os padrões mais frequentes: 2–3 ímpares, 2–3 altos, soma entre ${sumP10} e ${sumP90}.`,
+    quente:      'Favorece números com mais saídas históricas — os mais frequentes do arquivo.',
+    fria:        'Favorece números com mais sorteios de ausência — os mais "atrasados" historicamente.',
+  };
+
+  // ── Annotation ──────────────────────────────
+  function annotate(nums) {
+    const odd  = nums.filter(n => n % 2 !== 0).length;
+    const even = 5 - odd;
+    const high = nums.filter(n => n >= 25).length;
+    const low  = 5 - high;
+    const sum  = nums.reduce((a, b) => a + b, 0);
+    const oddOk  = odd >= 2 && odd <= 3;
+    const highOk = high >= 2 && high <= 3;
+    const sumOk  = sum >= sumP10 && sum <= sumP90;
+    return `<div class="chave-annotation">
+      <span class="${oddOk  ? 'ann-ok' : 'ann-warn'}">${odd}í+${even}p</span>
+      <span class="${highOk ? 'ann-ok' : 'ann-warn'}">${low}bx+${high}alt</span>
+      <span class="${sumOk  ? 'ann-ok' : 'ann-warn'}">Σ ${sum}</span>
+    </div>`;
+  }
+
+  // ── Render ───────────────────────────────────
+  function renderSmartLine(nums, lucky, index) {
+    const balls = nums.map(n => `<span class="ball">${n}</span>`).join('');
+    const luckyBall = `<span class="ball ball--lucky">${lucky}</span>`;
+    return `
+      <div class="line" aria-label="Chave ${index + 1}">
+        <span class="line-label">Chave ${index + 1}</span>
+        <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
+      </div>
+      ${annotate(nums)}`;
+  }
+
+  // ── State ────────────────────────────────────
+  let currentStrategy = 'equilibrada';
+
+  // Strategy pills
+  document.querySelectorAll('.strategy-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.strategy-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentStrategy = btn.dataset.strategy;
+      document.getElementById('strategy-desc').textContent = descs[currentStrategy];
+    });
+  });
+
+  // Generate
+  document.getElementById('smart-btn').addEventListener('click', () => {
+    const input       = document.getElementById('smart-lines-input');
+    const count       = Math.max(1, Math.min(20, parseInt(input.value, 10) || 1));
+    const avoidRepeat = document.getElementById('avoid-repeats').checked;
+    const excluded    = avoidRepeat ? new Set(lastDraw.numbers) : new Set();
+    const { luckyW }  = strategies[currentStrategy];
+    const results     = document.getElementById('smart-results');
+
+    function pickWithFilter() {
+      const { pick } = strategies[currentStrategy];
+      for (let t = 0; t < 500; t++) {
+        const nums = pick();
+        if (!nums.some(n => excluded.has(n))) return nums;
+      }
+      return strategies[currentStrategy].pick();
+    }
+
+    results.innerHTML = Array.from({ length: count }, (_, i) =>
+      renderSmartLine(pickWithFilter(), pickLucky(luckyW), i)
+    ).join('');
+  });
+</script>
+
+<!-- ── Cell detail panel ───────────────────── -->
+<div id="cell-detail" class="cell-detail" hidden>
+  <div class="cell-detail-hero">
+    <div>
+      <div class="cell-detail-type"></div>
+      <div class="cell-detail-num"></div>
+    </div>
+    <button class="cell-detail-close" aria-label="Fechar">✕</button>
+  </div>
+  <div class="cell-detail-body"></div>
+</div>
+
+<script>
+  const panel      = document.getElementById('cell-detail')!;
+  const panelNum   = panel.querySelector('.cell-detail-num')!  as HTMLElement;
+  const panelType  = panel.querySelector('.cell-detail-type')! as HTMLElement;
+  const panelBody  = panel.querySelector('.cell-detail-body')! as HTMLElement;
+  let activeCell: HTMLElement | null = null;
+
+  function showDetail(cell: HTMLElement) {
+    const { num, draws, pct, lastDraw, lastDate, absences, type } = cell.dataset as Record<string, string>;
+    const isLucky = type === 'lucky';
+    const color   = isLucky ? 'var(--primary)' : 'var(--blue)';
+
+    panelType.textContent  = isLucky ? 'Número da Sorte' : 'Número';
+    panelNum.textContent   = num;
+    panelNum.style.color   = color;
+
+    panelBody.innerHTML = [
+      ['Saídas',          `${draws}× (${pct}%)`],
+      ['Último sorteio',  lastDraw],
+      ['Data',            lastDate],
+      ['Ausências',       `${absences} sorteios`],
+    ].map(([lbl, val]) =>
+      `<div class="cell-detail-row"><span class="lbl">${lbl}</span><span class="val">${val}</span></div>`
+    ).join('');
+
+    panel.removeAttribute('hidden');
+    positionPanel(cell);
+    activeCell = cell;
+  }
+
+  function positionPanel(cell: HTMLElement) {
+    const r  = cell.getBoundingClientRect();
+    const pw = panel.offsetWidth  || 210;
+    const ph = panel.offsetHeight || 170;
+    const gap = 8;
+
+    let left = r.right + gap;
+    let top  = r.top;
+
+    if (left + pw > window.innerWidth  - gap) left = r.left - pw - gap;
+    if (left < gap) left = gap;
+    if (top  + ph > window.innerHeight - gap) top  = window.innerHeight - ph - gap;
+    if (top  < gap) top  = gap;
+
+    panel.style.left = `${left}px`;
+    panel.style.top  = `${top}px`;
+  }
+
+  function closePanel() {
+    panel.setAttribute('hidden', '');
+    activeCell = null;
+  }
+
+  document.querySelectorAll<HTMLElement>('.freq-cell').forEach(cell => {
+    cell.addEventListener('click', e => {
+      e.stopPropagation();
+      activeCell === cell ? closePanel() : showDetail(cell);
+    });
+  });
+
+  panel.querySelector('.cell-detail-close')!.addEventListener('click', e => {
+    e.stopPropagation();
+    closePanel();
+  });
+
+  document.addEventListener('click', e => {
+    if (activeCell && !panel.contains(e.target as Node)) closePanel();
+  });
+</script>
+
+</body>
+</html>

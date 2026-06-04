@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\hugor\\\\Documents\\\\code\\\\irs\" -File | Where-Object { $_.Extension -in @\\('.astro', '.html'\\) } | Select-Object -ExpandProperty FullName)"
+    ]
+  }
+}
