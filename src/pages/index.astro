@@ -289,22 +289,6 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     <div id="smart-results"></div>
   </div>
 
-  <!-- ── Cart ──────────────────────────────────── -->
-  <div id="cart-section" class="card" hidden>
-    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
-      <span class="card-label">Carrinho de Apostas</span>
-      <div style="display:flex;align-items:center;gap:.5rem">
-        <span id="cart-badge" class="cart-badge">0</span>
-        <button id="cart-clear" class="btn-cart-clear" title="Limpar carrinho">✕ Limpar</button>
-      </div>
-    </div>
-    <div id="cart-items"></div>
-    <div style="padding:.85rem 1.25rem;border-top:2px solid var(--border)">
-      <button id="checkout-btn" class="btn-primary">Finalizar Aposta →</button>
-      <p id="checkout-status" class="checkout-status"></p>
-    </div>
-  </div>
-
   </div><!-- /layout-col left -->
 
   <!-- ── Col 2: historical stats ──────────────── -->
@@ -827,15 +811,19 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   // ── State ────────────────────────────────────
   const cart: { numbers: number[]; lucky: number }[] = [];
 
-  const cartSection  = document.getElementById('cart-section')!;
+  const cartToggle   = document.getElementById('cart-toggle') as HTMLButtonElement;
+  const cartPanel    = document.getElementById('cart-panel')!;
   const cartItemsEl  = document.getElementById('cart-items')!;
   const cartBadgeEl  = document.getElementById('cart-badge')!;
   const checkoutBtn  = document.getElementById('checkout-btn') as HTMLButtonElement;
   const checkoutStatus = document.getElementById('checkout-status')!;
 
   function renderCart() {
-    cartBadgeEl.textContent = String(cart.length);
-    cartSection.hidden = cart.length === 0;
+    const n = cart.length;
+    cartBadgeEl.textContent = String(n);
+    cartBadgeEl.hidden = n === 0;
+    cartToggle.classList.toggle('has-items', n > 0);
+    if (n === 0) cartPanel.hidden = true;
 
     cartItemsEl.innerHTML = cart.map((bet, i) => {
       const balls = bet.numbers.map(n => `<span class="cart-ball">${n}</span>`).join('');
@@ -856,15 +844,27 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     });
   }
 
+  // ── Toggle panel ──────────────────────────────
+  cartToggle.addEventListener('click', e => {
+    e.stopPropagation();
+    if (cart.length > 0) cartPanel.hidden = !cartPanel.hidden;
+  });
+
+  document.addEventListener('click', e => {
+    if (!cartPanel.hidden && !cartPanel.contains(e.target as Node)) {
+      cartPanel.hidden = true;
+    }
+  });
+
   // ── Add to cart via event delegation ─────────
   function setupAddListeners(containerId: string) {
     document.getElementById(containerId)!.addEventListener('click', e => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.btn-add-cart');
       if (!btn) return;
-      const line = btn.closest<HTMLElement>('[data-numbers]');
-      if (!line) return;
-      const numbers = line.dataset.numbers!.split(',').map(Number);
-      const lucky   = Number(line.dataset.lucky);
+      const entry = btn.closest<HTMLElement>('[data-numbers]');
+      if (!entry) return;
+      const numbers = entry.dataset.numbers!.split(',').map(Number);
+      const lucky   = Number(entry.dataset.lucky);
       cart.push({ numbers, lucky });
       renderCart();
       btn.textContent = '✓ Adicionado';
@@ -1013,6 +1013,28 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     if (activeCell && !panel.contains(e.target as Node)) closePanel();
   });
 </script>
+
+<!-- ── Cart toggle (fixed top-right) ────────── -->
+<button id="cart-toggle" class="cart-toggle" aria-label="Carrinho de Apostas">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+  </svg>
+  <span id="cart-badge" class="cart-badge-count" hidden>0</span>
+</button>
+
+<!-- ── Cart panel ────────────────────────────── -->
+<div id="cart-panel" class="cart-panel" hidden>
+  <div class="cart-panel-header">
+    <span class="card-label">Carrinho de Apostas</span>
+    <button id="cart-clear" class="btn-cart-clear">✕ Limpar</button>
+  </div>
+  <div class="cart-panel-items"><div id="cart-items"></div></div>
+  <div class="cart-panel-footer">
+    <button id="checkout-btn" class="btn-primary">Finalizar Aposta →</button>
+    <p id="checkout-status" class="checkout-status"></p>
+  </div>
+</div>
 
 </body>
 </html>
