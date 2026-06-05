@@ -861,6 +861,17 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
         renderCart();
       });
     });
+
+    // Sync add-to-cart buttons with current cart state
+    document.querySelectorAll<HTMLButtonElement>('.btn-add-cart').forEach(btn => {
+      const entry = btn.closest<HTMLElement>('[data-numbers]');
+      if (!entry) return;
+      const inCart = cart.some(
+        b => b.numbers.join(',') === entry.dataset.numbers && String(b.lucky) === entry.dataset.lucky
+      );
+      btn.textContent = inCart ? '✓ Adicionado' : '+ Carrinho';
+      btn.classList.toggle('added', inCart);
+    });
   }
 
   // ── Toggle panel ──────────────────────────────
