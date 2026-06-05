@@ -1,9 +1,9 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, appendFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ARCHIVE_PATH = join(__dirname, '../../src/data/totoloto_archive.json');
+const ARCHIVE_PATH = join(__dirname, '../../src/data/totoloto.jsonl');
 const URL = 'https://www.jogossantacasa.pt/web/ResultsBoard/totoloto';
 
 async function fetchLatest() {
@@ -15,7 +15,7 @@ async function fetchLatest() {
   const html = new TextDecoder('iso-8859-1').decode(buf);
 
   const drawMatch    = html.match(/Sorteio:\s*(\d{3}\/\d{4})/);
-  const dateMatch    = html.match(/Data do Sorteio\s*-\s*(\d{2}\/\d{2}\/\d{4})/);
+  const dateMatch    = html.match(/Data do Sorteio\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
   const numbersMatch = html.match(/class="colums">\s*<li>([\d\s]+)\+\s*(\d+)\s*<\/li>/);
 
   if (!drawMatch || !dateMatch || !numbersMatch) {
@@ -24,26 +24,20 @@ async function fetchLatest() {
 
   const numbers = numbersMatch[1].trim().split(/\s+/).map(Number).sort((a, b) => a - b);
   const lucky   = parseInt(numbersMatch[2]);
+  const date    = dateMatch[3] + '-' + dateMatch[2] + '-' + dateMatch[1];
 
-  return {
-    draw:    drawMatch[1],
-    date:    dateMatch[1],
-    numbers,
-    lucky,
-  };
+  return { draw: drawMatch[1], date, numbers, lucky };
 }
 
-const archive = JSON.parse(readFileSync(ARCHIVE_PATH, 'utf8'));
-const latest  = await fetchLatest();
+const lines  = readFileSync(ARCHIVE_PATH, 'utf8').trim().split('\n');
+const latest = await fetchLatest();
 
-const alreadyExists = archive.some(d => d.draw === latest.draw);
+const alreadyExists = lines.some(l => JSON.parse(l).draw === latest.draw);
 
 if (alreadyExists) {
   console.log(`Draw ${latest.draw} already in archive — nothing to update.`);
   process.exit(0);
 }
 
-archive.push(latest);
-writeFileSync(ARCHIVE_PATH, JSON.stringify(archive), 'utf8');
+appendFileSync(ARCHIVE_PATH, '\n' + JSON.stringify(latest));
 console.log(`Added draw ${latest.draw} (${latest.date}): ${latest.numbers.join(' ')} + ${latest.lucky}`);
-process.exit(0);

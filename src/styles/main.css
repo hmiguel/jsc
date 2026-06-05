@@ -105,9 +105,10 @@ body {
   letter-spacing: -.5px;
 }
 .heading-sub {
-  font-size: .75rem;
+  flex-basis: 100%;
+  font-size: .85rem;
   color: var(--muted);
-  margin-left: .1rem;
+  margin-top: -.25rem;
 }
 
 /* ── Card base ──────────────────────────────── */
@@ -756,3 +757,5 @@ body {
   font-weight: 600; transition: color .1s;
 }
 .footer-gh:hover { color: var(--primary); }
+.build-sha { font-family:var(--mono);font-size:11px;font-weight:400;text-decoration:none;color:var(--muted);transition:color .2s; }
+.build-sha:hover { color:var(--primary); }

@@ -1,9 +1,15 @@
 ---
 import '../styles/main.css';
-import rawArchive from '../data/totoloto_archive.json';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-interface Draw { draw: string; date: string; numbers: number[]; lucky: number; }
-const archive = rawArchive as Draw[];
+const commitSha = (import.meta.env.CF_PAGES_COMMIT_SHA as string | undefined)?.slice(0, 7);
+
+interface Draw { id?: string; draw: string; date: string; numbers: number[]; lucky: number; }
+const rawArchive: Draw[] = readFileSync(fileURLToPath(new URL('../data/totoloto.jsonl', import.meta.url)), 'utf8')
+  .trim().split('\n').map(l => JSON.parse(l));
+const fmtDate = (iso: string) => iso.split('-').reverse().join('/');
+const archive = rawArchive;
 const N = archive.length;
 
 // ── Odd / Even ───────────────────────────────
@@ -217,6 +223,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
   <div class="heading">
     <h1>Totoloto</h1>
+    <p class="heading-sub">Gera apostas e explora estatísticas históricas de mais de {N.toLocaleString('pt')} sorteios do Totoloto desde 2011.</p>
   </div>
 
   <div class="layout">
@@ -259,7 +266,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       </div>
       <!-- Last draw reference -->
       <div class="last-draw-row">
-        <span class="last-draw-label">Último sorteio ({lastDraw.draw} · {lastDraw.date})</span>
+        <span class="last-draw-label">Último sorteio ({lastDraw.draw} · {fmtDate(lastDraw.date)})</span>
         <div class="last-draw-balls">
           {lastDraw.numbers.map(n => <span class="last-draw-ball">{n}</span>)}
           <span class="balls-sep">+</span>
@@ -628,6 +635,15 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       </svg>
       hmiguel/jsc
     </a>
+    {commitSha && (
+      <a
+        href={`https://github.com/hmiguel/jsc/commit/${commitSha}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="build-sha"
+        title={`Build: ${commitSha}`}
+      >{commitSha}</a>
+    )}
   </footer>
 
 </div>
