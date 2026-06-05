@@ -169,8 +169,9 @@ body {
   text-transform: uppercase;
   letter-spacing: .06em;
 }
-.btn-primary:hover { background: #d4632e; }
-.btn-primary:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #111; }
+.btn-primary:hover:not(:disabled) { background: #d4632e; }
+.btn-primary:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #111; }
+.btn-primary:disabled { background: var(--surface-2); color: var(--muted); box-shadow: none; cursor: not-allowed; }
 
 /* ── Results area ───────────────────────────── */
 .results-empty {

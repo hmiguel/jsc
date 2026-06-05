@@ -1,5 +1,7 @@
 const ORIGIN = 'https://totoloto.lixo.dev';
 
+window.postMessage({ type: 'JSC_EXT_READY' }, ORIGIN);
+
 window.addEventListener('message', async (event) => {
   if (event.origin !== ORIGIN) return;
   if (event.data?.type !== 'JSC_CHECKOUT') return;

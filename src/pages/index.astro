@@ -811,12 +811,25 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   // ── State ────────────────────────────────────
   const cart: { numbers: number[]; lucky: number }[] = [];
 
-  const cartToggle   = document.getElementById('cart-toggle') as HTMLButtonElement;
-  const cartPanel    = document.getElementById('cart-panel')!;
-  const cartItemsEl  = document.getElementById('cart-items')!;
-  const cartBadgeEl  = document.getElementById('cart-badge')!;
-  const checkoutBtn  = document.getElementById('checkout-btn') as HTMLButtonElement;
+  const cartToggle     = document.getElementById('cart-toggle') as HTMLButtonElement;
+  const cartPanel      = document.getElementById('cart-panel')!;
+  const cartItemsEl    = document.getElementById('cart-items')!;
+  const cartBadgeEl    = document.getElementById('cart-badge')!;
+  const checkoutBtn    = document.getElementById('checkout-btn') as HTMLButtonElement;
   const checkoutStatus = document.getElementById('checkout-status')!;
+
+  // ── Extension detection ───────────────────────
+  checkoutBtn.disabled = true;
+  checkoutStatus.textContent = 'Extensão Chrome não instalada';
+  checkoutStatus.className = 'checkout-status err';
+
+  window.addEventListener('message', e => {
+    if (e.origin !== location.origin) return;
+    if (e.data?.type !== 'JSC_EXT_READY') return;
+    checkoutBtn.disabled = false;
+    checkoutStatus.textContent = '';
+    checkoutStatus.className = 'checkout-status';
+  }, { once: true });
 
   function renderCart() {
     const n = cart.length;
@@ -923,6 +936,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
       cart.length = 0;
       renderCart();
+      (document.getElementById('results') as HTMLElement).innerHTML = '';
+      (document.getElementById('smart-results') as HTMLElement).innerHTML = '';
     } catch (err: any) {
       checkoutStatus.className = 'checkout-status err';
       checkoutStatus.textContent = `Erro: ${err.message}`;
