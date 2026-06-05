@@ -151,6 +151,8 @@ const luckyFreqW = luckyStats.length > 0 ? luckyStats.map(s => s.draws)        :
 const mainAbsW   = hasData ? mainStats.map(s => s.absences + 1) : Array(49).fill(1);
 const luckyAbsW  = luckyStats.length > 0 ? luckyStats.map(s => s.absences + 1) : Array(13).fill(1);
 
+const SITE_URL = 'https://totoloto.lixo.dev'; // update when deployed
+
 function cellStyle(draws: number, max: number, isLucky: boolean) {
   const intensity = draws / max;
   const alpha     = (intensity * 0.78 + 0.04).toFixed(2);
@@ -165,7 +167,46 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Totoloto · Gerador de Chaves</title>
+
+  <title>Totoloto · Gerador de Apostas e Estatísticas | Portugal</title>
+  <meta name="description" content="Gera apostas para o Totoloto com base em estatísticas históricas de mais de 1500 sorteios. Analisa frequências, padrões, pares e usa o gerador inteligente de chaves. Grátis e sem registo.">
+  <meta name="keywords" content="Totoloto, gerador Totoloto, apostas Totoloto, números Totoloto, estatísticas Totoloto, Jogos Santa Casa, chaves Totoloto, Totoloto Portugal, número da sorte, gerador de números">
+  <meta name="author" content="Hugo Conceição">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href={SITE_URL}>
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content={SITE_URL}>
+  <meta property="og:locale" content="pt_PT">
+  <meta property="og:title" content="Totoloto · Gerador de Apostas e Estatísticas">
+  <meta property="og:description" content="Gera apostas para o Totoloto com base em estatísticas históricas de mais de 1500 sorteios. Analisa frequências, padrões, pares e usa o gerador inteligente de chaves.">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Totoloto · Gerador de Apostas e Estatísticas">
+  <meta name="twitter:description" content="Gera apostas para o Totoloto com base em estatísticas históricas de mais de 1500 sorteios.">
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Gerador de Apostas Totoloto",
+    "description": "Ferramenta gratuita para gerar e analisar apostas do Totoloto com base em estatísticas históricas de mais de 1500 sorteios desde 2011.",
+    "url": SITE_URL,
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web",
+    "inLanguage": "pt-PT",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "author": { "@type": "Person", "name": "Hugo Conceição" },
+    "about": {
+      "@type": "Thing",
+      "name": "Totoloto",
+      "description": "Jogo de lotaria nacional operado pela Santa Casa da Misericórdia de Lisboa através dos Jogos Santa Casa"
+    }
+  })}></script>
+
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/jetbrains-mono.woff2">
   <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/plus-jakarta-sans.woff2">
