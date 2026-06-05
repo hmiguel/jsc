@@ -3,33 +3,47 @@ const BTN_CLASS = 'jsc-apostar-btn';
 const style = document.createElement('style');
 style.textContent = `
   .${BTN_CLASS} {
-    margin-left: .75rem;
-    padding: .2rem .6rem;
-    font-size: .75rem;
-    font-family: inherit;
-    border: 1px solid var(--primary, #e05a2b);
-    border-radius: 4px;
+    margin-left: auto;
+    padding: .3rem .65rem;
+    font-size: .62rem;
+    font-weight: 700;
+    font-family: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    border: 2px solid #1a1a1a;
+    border-radius: 0;
     background: transparent;
-    color: var(--primary, #e05a2b);
+    color: #e67541;
+    box-shadow: 2px 2px 0 #111;
     cursor: pointer;
-    transition: background .15s, color .15s;
+    transition: background .1s, color .1s;
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .${BTN_CLASS}:hover:not(:disabled) {
-    background: var(--primary, #e05a2b);
+    background: #e67541;
     color: #fff;
   }
+  .${BTN_CLASS}:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
   .${BTN_CLASS}:disabled {
-    opacity: .6;
+    opacity: .55;
     cursor: default;
+    box-shadow: none;
   }
   .${BTN_CLASS}.done {
-    border-color: var(--green, #2b9e4c);
-    color: var(--green, #2b9e4c);
+    background: #008dd0;
+    color: #fff;
+    border-color: #1a1a1a;
+    box-shadow: 2px 2px 0 #111;
   }
   .${BTN_CLASS}.err {
-    border-color: var(--red, #c0392b);
-    color: var(--red, #c0392b);
+    background: transparent;
+    color: #e67541;
+    border-color: #1a1a1a;
+    box-shadow: 2px 2px 0 #111;
   }
 `;
 document.head.appendChild(style);
@@ -53,7 +67,7 @@ function injectButtons(container) {
 
 async function handleBet(btn, numbers, lucky) {
   btn.disabled = true;
-  btn.textContent = '…';
+  btn.textContent = 'A enviar...';
 
   try {
     const response = await chrome.runtime.sendMessage({ type: 'ADD_TO_BASKET', numbers, lucky });
