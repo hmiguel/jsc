@@ -676,8 +676,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     const balls    = main.map(n => `<span class="ball">${n}</span>`).join('');
     const luckyBall = `<span class="ball ball--lucky" title="Número da sorte">${lucky}</span>`;
     return `
-      <div class="bet-entry">
-        <div class="line" aria-label="Chave ${index + 1}" data-numbers="${main.join(',')}" data-lucky="${lucky}">
+      <div class="bet-entry" data-numbers="${main.join(',')}" data-lucky="${lucky}">
+        <div class="line" aria-label="Chave ${index + 1}">
           <span class="line-label">Chave ${index + 1}</span>
           <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
         </div>
@@ -776,8 +776,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     const balls = nums.map(n => `<span class="ball">${n}</span>`).join('');
     const luckyBall = `<span class="ball ball--lucky">${lucky}</span>`;
     return `
-      <div class="bet-entry">
-        <div class="line" aria-label="Chave ${index + 1}" data-numbers="${nums.join(',')}" data-lucky="${lucky}">
+      <div class="bet-entry" data-numbers="${nums.join(',')}" data-lucky="${lucky}">
+        <div class="line" aria-label="Chave ${index + 1}">
           <span class="line-label">Chave ${index + 1}</span>
           <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
         </div>
