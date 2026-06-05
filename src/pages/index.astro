@@ -823,13 +823,18 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   checkoutStatus.textContent = 'Extensão Chrome não instalada';
   checkoutStatus.className = 'checkout-status err';
 
-  window.addEventListener('message', e => {
+  const onExtReady = (e: MessageEvent) => {
     if (e.origin !== location.origin) return;
     if (e.data?.type !== 'JSC_EXT_READY') return;
     checkoutBtn.disabled = false;
     checkoutStatus.textContent = '';
     checkoutStatus.className = 'checkout-status';
-  }, { once: true });
+    window.removeEventListener('message', onExtReady);
+  };
+  window.addEventListener('message', onExtReady);
+  // Ping the extension — if it loaded first it will respond; if it loads
+  // later it will announce itself via JSC_EXT_READY automatically.
+  window.postMessage({ type: 'JSC_EXT_PING' }, '*');
 
   function renderCart() {
     const n = cart.length;
