@@ -527,6 +527,7 @@ body {
   z-index: 200;
 }
 .has-tip:hover::after { opacity: 1; }
+.has-tip.tip-flip::after { left: auto; right: 0; }
 
 /* ── Distribution bars ───────────────────────── */
 .dist-row {
