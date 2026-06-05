@@ -21,44 +21,8 @@ function nextDrawWeekDay(): number {
   return 7;
 }
 
-export async function onRequestOptions() {
-  return new Response(null, { status: 204, headers: CORS });
-}
-
-export async function onRequestPost(context: { request: Request }) {
-  let numbers: number[], lucky: number;
-  try {
-    ({ numbers, lucky } = await context.request.json() as { numbers: number[]; lucky: number });
-  } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400, headers: CORS });
-  }
-
-  // 1. Get anonymous JSESSIONID
-  const initResp = await fetch('https://www.jogossantacasa.pt/web/JogarTotoloto', {
-    headers: JSC_HEADERS,
-    redirect: 'follow',
-  });
-
-  const setCookies: string[] = (initResp.headers as any).getSetCookie?.() ?? [];
-  let jsessionid = '';
-  for (const c of setCookies) {
-    const m = c.match(/JSESSIONID=([^;,\s]+)/);
-    if (m) { jsessionid = m[1]; break; }
-  }
-  // Fallback: parse the combined set-cookie string
-  if (!jsessionid) {
-    const raw = initResp.headers.get('set-cookie') ?? '';
-    const m = raw.match(/JSESSIONID=([^;,\s]+)/);
-    if (m) jsessionid = m[1];
-  }
-
-  if (!jsessionid) {
-    return Response.json({ error: 'Failed to get session from JSC' }, { status: 502, headers: CORS });
-  }
-
-  // 2. POST numbers to basket
-  const weekDay = String(nextDrawWeekDay());
-  const body = new URLSearchParams({
+function buildBasketBody(numbers: number[], lucky: number, weekDay: string): URLSearchParams {
+  return new URLSearchParams({
     hidWager1: numbers.join(',') + ',',
     hidNWager: '1',
     hidNLuckyDip: '0',
@@ -79,22 +43,60 @@ export async function onRequestPost(context: { request: Request }) {
     keyIdAlt: '0',
     hidType: 'S',
   });
+}
 
-  const addResp = await fetch('https://www.jogossantacasa.pt/web/JogarTotoloto/adicCarr', {
-    method: 'POST',
-    headers: {
-      ...JSC_HEADERS,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': `JSESSIONID=${jsessionid}`,
-      'Referer': 'https://www.jogossantacasa.pt/web/JogarTotoloto',
-      'Origin': 'https://www.jogossantacasa.pt',
-    },
-    body: body.toString(),
+export async function onRequestOptions() {
+  return new Response(null, { status: 204, headers: CORS });
+}
+
+export async function onRequestPost(context: { request: Request }) {
+  let bets: { numbers: number[]; lucky: number }[];
+  try {
+    ({ bets } = await context.request.json() as { bets: { numbers: number[]; lucky: number }[] });
+    if (!Array.isArray(bets) || bets.length === 0) throw new Error();
+  } catch {
+    return Response.json({ error: 'Expected { bets: [{numbers, lucky}] }' }, { status: 400, headers: CORS });
+  }
+
+  // 1. Get anonymous JSESSIONID
+  const initResp = await fetch('https://www.jogossantacasa.pt/web/JogarTotoloto', {
+    headers: JSC_HEADERS,
     redirect: 'follow',
   });
 
-  return Response.json(
-    { jsessionid, ok: addResp.ok, status: addResp.status },
-    { headers: CORS },
-  );
+  const setCookies: string[] = (initResp.headers as any).getSetCookie?.() ?? [];
+  let jsessionid = '';
+  for (const c of setCookies) {
+    const m = c.match(/JSESSIONID=([^;,\s]+)/);
+    if (m) { jsessionid = m[1]; break; }
+  }
+  if (!jsessionid) {
+    const raw = initResp.headers.get('set-cookie') ?? '';
+    const m = raw.match(/JSESSIONID=([^;,\s]+)/);
+    if (m) jsessionid = m[1];
+  }
+  if (!jsessionid) {
+    return Response.json({ error: 'Failed to get session from JSC' }, { status: 502, headers: CORS });
+  }
+
+  // 2. POST each bet to the basket with the same session
+  const weekDay = String(nextDrawWeekDay());
+  const postHeaders = {
+    ...JSC_HEADERS,
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Cookie': `JSESSIONID=${jsessionid}`,
+    'Referer': 'https://www.jogossantacasa.pt/web/JogarTotoloto',
+    'Origin': 'https://www.jogossantacasa.pt',
+  };
+
+  for (const bet of bets) {
+    await fetch('https://www.jogossantacasa.pt/web/JogarTotoloto/adicCarr', {
+      method: 'POST',
+      headers: postHeaders,
+      body: buildBasketBody(bet.numbers, bet.lucky, weekDay).toString(),
+      redirect: 'follow',
+    });
+  }
+
+  return Response.json({ jsessionid, count: bets.length }, { headers: CORS });
 }

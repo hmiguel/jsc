@@ -289,6 +289,22 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     <div id="smart-results"></div>
   </div>
 
+  <!-- ── Cart ──────────────────────────────────── -->
+  <div id="cart-section" class="card" hidden>
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+      <span class="card-label">Carrinho de Apostas</span>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span id="cart-badge" class="cart-badge">0</span>
+        <button id="cart-clear" class="btn-cart-clear" title="Limpar carrinho">✕ Limpar</button>
+      </div>
+    </div>
+    <div id="cart-items"></div>
+    <div style="padding:.85rem 1.25rem;border-top:2px solid var(--border)">
+      <button id="checkout-btn" class="btn-primary">Finalizar Aposta →</button>
+      <p id="checkout-status" class="checkout-status"></p>
+    </div>
+  </div>
+
   </div><!-- /layout-col left -->
 
   <!-- ── Col 2: historical stats ──────────────── -->
@@ -660,9 +676,14 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     const balls    = main.map(n => `<span class="ball">${n}</span>`).join('');
     const luckyBall = `<span class="ball ball--lucky" title="Número da sorte">${lucky}</span>`;
     return `
-      <div class="line" aria-label="Chave ${index + 1}" data-numbers="${main.join(',')}" data-lucky="${lucky}">
-        <span class="line-label">Chave ${index + 1}</span>
-        <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
+      <div class="bet-entry">
+        <div class="line" aria-label="Chave ${index + 1}" data-numbers="${main.join(',')}" data-lucky="${lucky}">
+          <span class="line-label">Chave ${index + 1}</span>
+          <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
+        </div>
+        <div class="bet-actions">
+          <button class="btn-add-cart">+ Carrinho</button>
+        </div>
       </div>`;
   }
 
@@ -746,6 +767,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       <span class="${oddOk  ? 'ann-ok' : 'ann-warn'}">${odd}í+${even}p</span>
       <span class="${highOk ? 'ann-ok' : 'ann-warn'}">${low}bx+${high}alt</span>
       <span class="${sumOk  ? 'ann-ok' : 'ann-warn'}">Σ ${sum}</span>
+      <button class="btn-add-cart" style="margin-left:auto">+ Carrinho</button>
     </div>`;
   }
 
@@ -754,11 +776,13 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     const balls = nums.map(n => `<span class="ball">${n}</span>`).join('');
     const luckyBall = `<span class="ball ball--lucky">${lucky}</span>`;
     return `
-      <div class="line" aria-label="Chave ${index + 1}" data-numbers="${nums.join(',')}" data-lucky="${lucky}">
-        <span class="line-label">Chave ${index + 1}</span>
-        <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
-      </div>
-      ${annotate(nums)}`;
+      <div class="bet-entry">
+        <div class="line" aria-label="Chave ${index + 1}" data-numbers="${nums.join(',')}" data-lucky="${lucky}">
+          <span class="line-label">Chave ${index + 1}</span>
+          <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
+        </div>
+        ${annotate(nums)}
+      </div>`;
   }
 
   // ── State ────────────────────────────────────
@@ -795,6 +819,116 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     results.innerHTML = Array.from({ length: count }, (_, i) =>
       renderSmartLine(pickWithFilter(), pickLucky(luckyW), i)
     ).join('');
+  });
+</script>
+
+<!-- ── Cart script ──────────────────────────── -->
+<script>
+  // ── State ────────────────────────────────────
+  const cart: { numbers: number[]; lucky: number }[] = [];
+
+  const cartSection  = document.getElementById('cart-section')!;
+  const cartItemsEl  = document.getElementById('cart-items')!;
+  const cartBadgeEl  = document.getElementById('cart-badge')!;
+  const checkoutBtn  = document.getElementById('checkout-btn') as HTMLButtonElement;
+  const checkoutStatus = document.getElementById('checkout-status')!;
+
+  function renderCart() {
+    cartBadgeEl.textContent = String(cart.length);
+    cartSection.hidden = cart.length === 0;
+
+    cartItemsEl.innerHTML = cart.map((bet, i) => {
+      const balls = bet.numbers.map(n => `<span class="cart-ball">${n}</span>`).join('');
+      const lucky = `<span class="cart-ball cart-ball--lucky">${bet.lucky}</span>`;
+      return `
+        <div class="cart-item">
+          <span class="cart-item-label">Chave ${i + 1}</span>
+          <div class="cart-balls">${balls}<span class="cart-balls-sep">+</span>${lucky}</div>
+          <button class="btn-cart-remove" data-idx="${i}" title="Remover">✕</button>
+        </div>`;
+    }).join('');
+
+    cartItemsEl.querySelectorAll<HTMLButtonElement>('[data-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        cart.splice(Number(btn.dataset.idx), 1);
+        renderCart();
+      });
+    });
+  }
+
+  // ── Add to cart via event delegation ─────────
+  function setupAddListeners(containerId: string) {
+    document.getElementById(containerId)!.addEventListener('click', e => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.btn-add-cart');
+      if (!btn) return;
+      const line = btn.closest<HTMLElement>('[data-numbers]');
+      if (!line) return;
+      const numbers = line.dataset.numbers!.split(',').map(Number);
+      const lucky   = Number(line.dataset.lucky);
+      cart.push({ numbers, lucky });
+      renderCart();
+      btn.textContent = '✓ Adicionado';
+      btn.classList.add('added');
+    });
+  }
+
+  setupAddListeners('results');
+  setupAddListeners('smart-results');
+
+  // ── Clear cart ────────────────────────────────
+  document.getElementById('cart-clear')!.addEventListener('click', () => {
+    cart.length = 0;
+    renderCart();
+  });
+
+  // ── Checkout ──────────────────────────────────
+  checkoutBtn.addEventListener('click', async () => {
+    if (cart.length === 0) return;
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'A processar...';
+    checkoutStatus.className = 'checkout-status';
+    checkoutStatus.textContent = '';
+
+    try {
+      const resp = await fetch('/api/basket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bets: cart }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (!data.jsessionid) throw new Error('Sessão inválida');
+
+      // Signal extension to inject cookie + open tab
+      let ack = false;
+      const ackListener = (e: MessageEvent) => {
+        if (e.data?.type === 'JSC_CHECKOUT_ACK') { ack = true; }
+      };
+      window.addEventListener('message', ackListener);
+      window.postMessage({ type: 'JSC_CHECKOUT', jsessionid: data.jsessionid }, '*');
+
+      await new Promise(r => setTimeout(r, 600));
+      window.removeEventListener('message', ackListener);
+
+      if (!ack) {
+        // Extension not installed — open tab directly (basket won't be pre-filled)
+        window.open('https://www.jogossantacasa.pt/web/JogarApostar/', '_blank');
+        checkoutStatus.className = 'checkout-status err';
+        checkoutStatus.textContent = 'Instala a extensão Chrome para pré-preencher o carrinho.';
+      } else {
+        checkoutStatus.className = 'checkout-status ok';
+        checkoutStatus.textContent = 'Carrinho enviado para o JSC!';
+      }
+
+      cart.length = 0;
+      renderCart();
+    } catch (err: any) {
+      checkoutStatus.className = 'checkout-status err';
+      checkoutStatus.textContent = `Erro: ${err.message}`;
+    } finally {
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = 'Finalizar Aposta →';
+    }
   });
 </script>
 

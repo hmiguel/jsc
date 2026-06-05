@@ -1,40 +1,25 @@
-const API_URL = 'https://totoloto.lixo.dev/api/basket';
-const JSC_BASKET_URL = 'https://www.jogossantacasa.pt/web/JogarApostar/';
+const JSC_URL = 'https://www.jogossantacasa.pt/web/JogarApostar/';
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type !== 'ADD_TO_BASKET') return false;
+  if (msg.type !== 'INJECT_AND_OPEN') return false;
 
-  addToBasket(msg.numbers, msg.lucky)
-    .then(result => sendResponse({ ok: true, ...result }))
-    .catch(err => sendResponse({ ok: false, error: err.message }));
+  injectAndOpen(msg.jsessionid)
+    .then(() => sendResponse({ ok: true }))
+    .catch(e => sendResponse({ ok: false, error: e.message }));
 
-  return true; // keep channel open for async response
+  return true;
 });
 
-async function addToBasket(numbers, lucky) {
-  const resp = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ numbers, lucky }),
-  });
-
-  const data = await resp.json();
-  if (!resp.ok || !data.jsessionid) {
-    throw new Error(data.error ?? `HTTP ${resp.status}`);
-  }
-
+async function injectAndOpen(jsessionid) {
   await chrome.cookies.set({
     url: 'https://www.jogossantacasa.pt',
     name: 'JSESSIONID',
-    value: data.jsessionid,
+    value: jsessionid,
     domain: 'www.jogossantacasa.pt',
     path: '/',
     secure: true,
     httpOnly: true,
     sameSite: 'no_restriction',
   });
-
-  await chrome.tabs.create({ url: JSC_BASKET_URL });
-
-  return { jsessionid: data.jsessionid };
+  await chrome.tabs.create({ url: JSC_URL });
 }
