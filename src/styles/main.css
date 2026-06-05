@@ -115,7 +115,6 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  overflow: hidden;
   border: 2px solid var(--border);
   position: relative;
 }

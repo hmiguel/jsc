@@ -299,19 +299,19 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
       <!-- Overview -->
       <div class="stat-chips">
-        <div class="stat-chip">
+        <div class="stat-chip has-tip" data-tip="Total de sorteios registados no arquivo desde março de 2011. Cada sorteio realiza-se às quartas-feiras e sábados.">
           <div class="stat-chip-label">Sorteios</div>
           <div class="stat-chip-val">{totalSorteios.toLocaleString('pt')}</div>
         </div>
         {mostFrequent && (
-          <div class="stat-chip">
+          <div class="stat-chip has-tip" data-tip="O número com mais saídas históricas. A diferença entre o mais e o menos frequente é normalmente pequena, confirmando a aleatoriedade dos sorteios.">
             <div class="stat-chip-label">Mais frequente</div>
             <div class="stat-chip-val" style="color:var(--blue)">{mostFrequent.number}</div>
             <div class="stat-chip-sub">{mostFrequent.draws}× · {mostFrequent.pct.toFixed(2)}%</div>
           </div>
         )}
         {mostAbsent && (
-          <div class="stat-chip">
+          <div class="stat-chip has-tip" data-tip="O número com mais sorteios consecutivos sem sair. Não significa que vá sair a seguir — cada sorteio é independente dos anteriores.">
             <div class="stat-chip-label">Mais ausente</div>
             <div class="stat-chip-val" style="color:var(--primary)">{mostAbsent.number}</div>
             <div class="stat-chip-sub">{mostAbsent.absences} sorteios</div>
@@ -321,7 +321,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
       <!-- Main number heat map -->
       <div class="freq-section">
-        <div class="freq-section-label">Frequência — Números (1–49)</div>
+        <div class="freq-section-label has-tip" data-tip="Mapa de calor com a frequência histórica de cada número. Azul mais intenso = mais sorteado. Clique em qualquer número para ver todos os detalhes.">Frequência — Números (1–49)</div>
         <div class="freq-grid">
           {mainStats.map(s => (
             <div
@@ -345,7 +345,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       <!-- Lucky number heat map -->
       {luckyStats.length > 0 && (
         <div class="freq-section">
-          <div class="freq-section-label">Frequência — Número da Sorte (1–13)</div>
+          <div class="freq-section-label has-tip" data-tip="Mapa de calor para os 13 números da sorte. Laranja mais intenso = mais sorteado. Clique para ver detalhes de cada número.">Frequência — Número da Sorte (1–13)</div>
           <div class="freq-row">
             {luckyStats.map(s => (
               <div
@@ -371,10 +371,10 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       <div class="freq-section">
 
         <!-- Main numbers -->
-        <div class="hc-group-label">Números (1–49)</div>
+        <div class="hc-group-label has-tip" data-tip="Top 5 números com mais saídas e top 5 com mais sorteios de ausência, calculados sobre o arquivo histórico completo.">Números (1–49)</div>
         <div class="hot-cold-grid">
           <div>
-            <div class="hot-cold-label" style="color:var(--blue)">▲ Mais frequentes</div>
+            <div class="hot-cold-label has-tip" style="color:var(--blue)" data-tip="Os 5 números principais sorteados mais vezes desde 2011.">▲ Mais frequentes</div>
             <div class="number-tags">
               {hotMain.map(s => (
                 <div class="number-tag" style="background:var(--blue);color:#fff;border-color:var(--blue)">
@@ -385,7 +385,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
             </div>
           </div>
           <div>
-            <div class="hot-cold-label" style="color:var(--muted)">▼ Mais ausentes</div>
+            <div class="hot-cold-label has-tip" style="color:var(--muted)" data-tip="Os 5 números que estão há mais sorteios consecutivos sem aparecer. Não implica maior probabilidade de sair.">▼ Mais ausentes</div>
             <div class="number-tags">
               {coldMain.map(s => (
                 <div class="number-tag">
@@ -400,10 +400,10 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
         <!-- Lucky numbers -->
         {hotLucky.length > 0 && (
           <div class="hc-lucky">
-            <div class="hc-group-label">Número da Sorte (1–13)</div>
+            <div class="hc-group-label has-tip" data-tip="Top 5 números da sorte com mais saídas e top 5 com mais ausências.">Número da Sorte (1–13)</div>
             <div class="hot-cold-grid">
               <div>
-                <div class="hot-cold-label" style="color:var(--primary)">▲ Mais frequentes</div>
+                <div class="hot-cold-label has-tip" style="color:var(--primary)" data-tip="Os 5 números da sorte sorteados mais vezes desde 2011.">▲ Mais frequentes</div>
                 <div class="number-tags">
                   {hotLucky.map(s => (
                     <div class="number-tag" style="background:var(--primary);color:#fff;border-color:var(--primary)">
@@ -414,7 +414,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
                 </div>
               </div>
               <div>
-                <div class="hot-cold-label" style="color:var(--muted)">▼ Mais ausentes</div>
+                <div class="hot-cold-label has-tip" style="color:var(--muted)" data-tip="Os 5 números da sorte há mais sorteios sem aparecer.">▼ Mais ausentes</div>
                 <div class="number-tags">
                   {coldLucky.map(s => (
                     <div class="number-tag">
