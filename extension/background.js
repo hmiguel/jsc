@@ -1,5 +1,5 @@
 const API_URL = 'https://totoloto.lixo.dev/api/basket';
-const JSC_BASKET_URL = 'https://www.jogossantacasa.pt/web/Carrinho';
+const JSC_BASKET_URL = 'https://www.jogossantacasa.pt/web/JogarApostar/';
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type !== 'ADD_TO_BASKET') return false;
