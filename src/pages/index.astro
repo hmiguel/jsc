@@ -837,7 +837,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     }).join('');
 
     cartItemsEl.querySelectorAll<HTMLButtonElement>('[data-idx]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
         cart.splice(Number(btn.dataset.idx), 1);
         renderCart();
       });
