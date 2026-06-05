@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Totoloto → JSC",
+  "version": "1.0",
+  "description": "Envia chaves geradas para o Carrinho de Apostas do Jogos Santa Casa",
+  "permissions": ["cookies", "tabs"],
+  "host_permissions": [
+    "https://totoloto.lixo.dev/*",
+    "https://www.jogossantacasa.pt/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://totoloto.lixo.dev/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
