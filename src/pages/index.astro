@@ -919,48 +919,34 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     checkoutStatus.className = 'checkout-status';
     checkoutStatus.textContent = '';
 
-    try {
-      const resp = await fetch('/api/basket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bets: cart }),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      if (!data.jsessionid) throw new Error('Sessão inválida');
-
-      // Signal extension to inject cookie + open tab
-      let ack = false;
-      const ackListener = (e: MessageEvent) => {
-        if (e.data?.type === 'JSC_CHECKOUT_ACK') { ack = true; }
+    // Extension does all the work: fetches JSC with user's cookie jar,
+    // POSTs bets, opens the tab. We wait up to 15s for the ACK.
+    const ack = await new Promise<boolean>(resolve => {
+      const listener = (e: MessageEvent) => {
+        if (e.data?.type === 'JSC_CHECKOUT_ACK') {
+          window.removeEventListener('message', listener);
+          resolve(true);
+        }
       };
-      window.addEventListener('message', ackListener);
-      window.postMessage({ type: 'JSC_CHECKOUT', jsessionid: data.jsessionid }, '*');
+      window.addEventListener('message', listener);
+      window.postMessage({ type: 'JSC_CHECKOUT', bets: [...cart] }, '*');
+      setTimeout(() => { window.removeEventListener('message', listener); resolve(false); }, 15000);
+    });
 
-      await new Promise(r => setTimeout(r, 600));
-      window.removeEventListener('message', ackListener);
-
-      if (!ack) {
-        // Extension not installed — open tab directly (basket won't be pre-filled)
-        window.open('https://www.jogossantacasa.pt/web/JogarApostar/', '_blank');
-        checkoutStatus.className = 'checkout-status err';
-        checkoutStatus.textContent = 'Instala a extensão Chrome para pré-preencher o carrinho.';
-      } else {
-        checkoutStatus.className = 'checkout-status ok';
-        checkoutStatus.textContent = 'Carrinho enviado para o JSC!';
-      }
-
+    if (ack) {
+      checkoutStatus.className = 'checkout-status ok';
+      checkoutStatus.textContent = 'Apostas enviadas para o JSC!';
       cart.length = 0;
       renderCart();
       (document.getElementById('results') as HTMLElement).innerHTML = '';
       (document.getElementById('smart-results') as HTMLElement).innerHTML = '';
-    } catch (err: any) {
+    } else {
       checkoutStatus.className = 'checkout-status err';
-      checkoutStatus.textContent = `Erro: ${err.message}`;
-    } finally {
-      checkoutBtn.disabled = false;
-      checkoutBtn.textContent = 'Finalizar Aposta →';
+      checkoutStatus.textContent = 'Sem resposta da extensão. Tenta novamente.';
     }
+
+    checkoutBtn.disabled = false;
+    checkoutBtn.textContent = 'Finalizar Aposta →';
   });
 </script>
 

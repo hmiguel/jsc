@@ -21,7 +21,7 @@ window.addEventListener('message', async (event) => {
   try {
     const resp = await chrome.runtime.sendMessage({
       type: 'INJECT_AND_OPEN',
-      jsessionid: event.data.jsessionid,
+      bets: event.data.bets,
     });
     if (resp?.ok) {
       window.postMessage({ type: 'JSC_CHECKOUT_ACK' }, ORIGIN);
