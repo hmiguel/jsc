@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Totoloto → JSC",
+  "name": "PrencheJá",
   "version": "1.0",
-  "description": "Envia apostas do Totoloto geradas em totoloto.lixo.dev para o carrinho de apostas do Jogos Santa Casa, com um clique.",
+  "description": "Envia apostas geradas em totoloto.lixo.dev para o carrinho do Jogos Santa Casa, com um clique.",
   "homepage_url": "https://totoloto.lixo.dev",
   "privacy_policy_url": "https://totoloto.lixo.dev/privacy",
   "minimum_chrome_version": "117",
@@ -13,7 +13,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Totoloto → JSC",
+    "default_title": "PrencheJá",
     "default_icon": {
       "16":  "icons/icon16.png",
       "32":  "icons/icon32.png",
