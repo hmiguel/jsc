@@ -59,6 +59,21 @@ const consecDraws = archive.filter(d => {
 }).length;
 const consecPct = Math.round(consecDraws / N * 100);
 
+// ── Longest consecutive streak distribution ──
+function longestStreak(nums: number[]): number {
+  const s = [...nums].sort((a,b) => a-b);
+  let max = 1, cur = 1;
+  for (let i = 1; i < s.length; i++) {
+    cur = s[i] - s[i-1] === 1 ? cur + 1 : 1;
+    if (cur > max) max = cur;
+  }
+  return max;
+}
+const streakDist = [1,2,3,4,5].map(k => ({
+  k,
+  count: archive.filter(d => longestStreak(d.numbers) === k).length,
+}));
+
 // ── Carry-over between consecutive draws ────────
 const carryDist = [0,1,2,3,4,5].map(k => {
   let count = 0;
@@ -541,6 +556,24 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
             <span class="dist-label">{k}alt {5-k}bx</span>
             <div class="dist-track">
               <div class="dist-fill" style={`width:${pct.toFixed(1)}%;background:var(--primary)`}></div>
+            </div>
+            <span class="dist-pct">{pct.toFixed(1)}%</span>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- Consecutive streak distribution -->
+    <div class="freq-section">
+      <div class="freq-section-label has-tip" data-tip="Distribuição do maior número de algarismos consecutivos por sorteio (ex: 22, 23, 24 = sequência de 3). A maioria dos sorteios sem consecutivos ou com apenas um par é o padrão esperado estatisticamente.">Sequências consecutivas por sorteio</div>
+      {streakDist.map(({k, count}) => {
+        const pct = count / N * 100;
+        const label = k === 1 ? 'Nenhuma' : `${k} seguidos`;
+        return (
+          <div class="dist-row">
+            <span class="dist-label">{label}</span>
+            <div class="dist-track">
+              <div class="dist-fill" style={`width:${pct.toFixed(1)}%;background:var(--blue)`}></div>
             </div>
             <span class="dist-pct">{pct.toFixed(1)}%</span>
           </div>
