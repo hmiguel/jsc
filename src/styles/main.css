@@ -158,7 +158,7 @@ body {
   align-items: stretch;
   gap: .35rem;
 }
-.input-stepper input[type="number"] { flex: 1; }
+.input-stepper input[type="number"] { flex: 1; box-shadow: 2px 2px 0 #111; }
 .stepper-btn {
   flex: 0 0 2.2rem;
   font-size: .85rem; font-weight: 700; font-family: inherit;
