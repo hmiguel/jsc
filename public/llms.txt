@@ -1,0 +1,23 @@
+# Totoloto — Gerador de Apostas e Estatísticas
+
+> Ferramenta gratuita para gerar e analisar apostas do Totoloto (Portugal) com base em mais de 1500 sorteios históricos desde 2011. Sem registo, sem publicidade.
+
+## O que é
+
+Totoloto é um jogo de lotaria nacional operado pela Santa Casa da Misericórdia de Lisboa através dos Jogos Santa Casa. O jogador escolhe 5 números (1–49) e 1 número da sorte (1–13).
+
+## Funcionalidades
+
+- Gerador de chaves com quatro estratégias: aleatório, equilibrada (filtra por padrões históricos), quente (favorece números frequentes) e fria (favorece números ausentes)
+- Mapa de calor com frequência histórica de cada número principal e número da sorte
+- Estatísticas de padrões: distribuição par/ímpar, alto/baixo, soma dos números, sequências consecutivas, repetições entre sorteios consecutivos
+- Pares de números mais e menos frequentes
+- Carrinho de apostas com integração opcional via extensão Chrome
+
+## Dados
+
+Os dados históricos são carregados de um arquivo local (JSONL) com todos os sorteios desde março de 2011. As estatísticas de frequência são obtidas em tempo real do portal oficial dos Jogos Santa Casa.
+
+## Tecnologia
+
+Site estático gerado com Astro, alojado na Cloudflare Pages. Sem base de dados, sem servidor, sem rastreamento de utilizadores.
