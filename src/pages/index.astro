@@ -293,8 +293,12 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
     </div>
     <div id="smart-results"></div>
-    <div id="smart-results-header" hidden style="justify-content:flex-end;margin-top:.5rem">
-      <button id="btn-add-all" class="btn-add-cart">+ todas</button>
+    <div id="smart-results-header" hidden>
+      <button id="btn-clear-bets" class="btn-add-cart">✕ Limpar</button>
+      <div style="display:flex;gap:.35rem">
+        <button id="btn-gen-new" class="btn-add-cart">+ Gerar nova</button>
+        <button id="btn-add-all" class="btn-add-cart">+ todas</button>
+      </div>
     </div>
   </div>
 
@@ -1105,6 +1109,17 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     addAllBtn.classList.add('added');
     renderCart();
     syncBetButtons();
+  });
+
+  // ── Clear bets list ───────────────────────────
+  document.getElementById('btn-clear-bets')!.addEventListener('click', () => {
+    smartResults.innerHTML = '';
+    linesInput.value = '0';
+  });
+
+  // ── Generate one new bet ──────────────────────
+  document.getElementById('btn-gen-new')!.addEventListener('click', () => {
+    if (rowCount() < 20) addRow();
   });
 
   // ── Clear cart ────────────────────────────────

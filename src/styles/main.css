@@ -552,7 +552,7 @@ body {
   padding: .2rem 1.25rem .45rem;
 }
 
-#smart-results-header:not([hidden]) { display: flex; padding: .5rem 1.25rem .5rem 0; }
+#smart-results-header:not([hidden]) { display: flex; justify-content: space-between; align-items: center; padding: .5rem 1.25rem; }
 
 /* ── Add-to-cart button ──────────────────────── */
 .btn-add-cart {
