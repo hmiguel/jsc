@@ -660,6 +660,19 @@ body {
 }
 
 /* ── Cart ────────────────────────────────────── */
+.cart-success {
+  padding: 1rem;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--blue);
+  line-height: 1.5;
+}
+.cart-success span {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: .72rem;
+}
+
 .cart-item {
   display: flex;
   align-items: center;

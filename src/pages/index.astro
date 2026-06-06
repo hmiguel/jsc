@@ -927,6 +927,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       : '';
     cartToggle.classList.toggle('has-items', n > 0);
     if (n === 0) cartPanel.hidden = true;
+    checkoutBtn.hidden = n === 0;
+    (document.getElementById('cart-clear') as HTMLButtonElement).hidden = n === 0;
 
     cartItemsEl.innerHTML = cart.map((bet, i) => {
       const balls = bet.numbers.map(n => `<span class="cart-ball">${n}</span>`).join('');
@@ -953,7 +955,10 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   // ── Toggle panel ──────────────────────────────
   cartToggle.addEventListener('click', e => {
     e.stopPropagation();
-    if (cart.length > 0) cartPanel.hidden = !cartPanel.hidden;
+    if (cart.length === 0) {
+      cartItemsEl.innerHTML = '<div class="cart-success"><span>O carrinho está vazio.</span></div>';
+    }
+    cartPanel.hidden = !cartPanel.hidden;
   });
 
   document.addEventListener('click', e => {
@@ -1058,11 +1063,19 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     });
 
     if (ack) {
-      checkoutStatus.className = 'checkout-status ok';
-      checkoutStatus.textContent = 'Apostas enviadas para o JSC!';
       cart.length = 0;
-      renderCart();
+      localStorage.setItem(CART_KEY, '[]');
       (document.getElementById('smart-results') as HTMLElement).innerHTML = '';
+      cartBadgeEl.hidden = true;
+      cartBadgeEl.textContent = '0';
+      cartTotalEl.textContent = '';
+      cartToggle.classList.remove('has-items');
+      cartItemsEl.innerHTML = `<div class="cart-success">Apostas enviadas com sucesso! Boa sorte!<br><span>Confira sempre os boletins antes de pagar.</span></div>`;
+      checkoutBtn.hidden = true;
+      (document.getElementById('cart-clear') as HTMLButtonElement).hidden = true;
+      checkoutStatus.textContent = '';
+      checkoutStatus.className = 'checkout-status';
+      cartPanel.hidden = false;
     } else {
       checkoutStatus.className = 'checkout-status err';
       checkoutStatus.textContent = 'Ocorreu um erro inesperado. Tenta novamente.';
