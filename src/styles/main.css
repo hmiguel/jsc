@@ -161,13 +161,15 @@ body {
 .input-stepper input[type="number"] { flex: 1; }
 .stepper-btn {
   flex: 0 0 2.2rem;
-  border: 2px solid var(--border); background: var(--surface);
-  color: var(--text); font-size: 1rem; font-weight: 700;
-  cursor: pointer; font-family: var(--mono);
-  transition: background .1s, border-color .1s;
+  font-size: .85rem; font-weight: 700; font-family: inherit;
+  border: 2px solid var(--border); border-radius: 0;
+  background: transparent; color: var(--muted);
+  box-shadow: 2px 2px 0 #111;
+  cursor: pointer;
+  transition: background .1s, color .1s;
 }
-.stepper-btn:hover { border-color: var(--primary); color: var(--primary); }
-.stepper-btn:active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.stepper-btn:hover { background: var(--text); color: #fff; }
+.stepper-btn:active { transform: translate(2px, 2px); box-shadow: none; }
 
 /* ── Generate button ────────────────────────── */
 .btn-primary {
