@@ -160,6 +160,7 @@ const coldLucky    = luckyStats.length > 0 ? [...luckyStats].sort((a, b) => b.ab
 
 // ── Last draw ────────────────────────────────
 const lastDraw = archive[archive.length - 1];
+const last10   = archive.slice(-10);
 
 // ── Smart picker data ────────────────────────
 const sortedSums = [...sums].sort((a,b) => a-b);
@@ -259,6 +260,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
           <button class="strategy-pill" data-strategy="equilibrada" aria-pressed="false">Equilibrada</button>
           <button class="strategy-pill" data-strategy="quente" aria-pressed="false">Quente</button>
           <button class="strategy-pill" data-strategy="fria" aria-pressed="false">Fria</button>
+          <button class="strategy-pill" data-strategy="smart" aria-pressed="false">Smart</button>
         </div>
         <div class="strategy-desc" id="strategy-desc">
           Gera 5 números e 1 número da sorte completamente ao acaso, sem qualquer filtro estatístico.
@@ -679,7 +681,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 </main>
 
 <!-- ── Generator + Smart picker script ─────────── -->
-<script define:vars={{ mainFreqW, luckyFreqW, mainAbsW, luckyAbsW, sumP10, sumP90, lastDraw }}>
+<script define:vars={{ mainFreqW, luckyFreqW, mainAbsW, luckyAbsW, sumP10, sumP90, lastDraw, last10 }}>
 
   // ── Helpers ─────────────────────────────────
   function pickNumbers(count, max) {
@@ -728,11 +730,50 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     return weightedSample(Array(49).fill(1), 5);
   }
 
+  // ── Smart strategy ───────────────────────────
+  // For each number: weight = historical_prob × (1 + 0.6 × recency_deficit)
+  // deficit = expected appearances in last 10 − actual appearances in last 10
+  // Numbers below their expected recent frequency get boosted; over-represented ones are dampened.
+  const { smartMainW, smartLuckyW } = (() => {
+    const recentMain  = new Array(49).fill(0);
+    const recentLucky = new Array(13).fill(0);
+    for (const d of last10) {
+      for (const n of d.numbers) recentMain[n - 1]++;
+      recentLucky[d.lucky - 1]++;
+    }
+    const n = mainFreqW.reduce((s, w) => s + w, 0) / 5 || 1;
+    const l = luckyFreqW.reduce((s, w) => s + w, 0) || 1;
+    return {
+      smartMainW: mainFreqW.map((freq, i) => {
+        const p = freq / n;
+        return Math.max(0.01, p * (1 + 0.6 * (p * last10.length - recentMain[i])));
+      }),
+      smartLuckyW: luckyFreqW.map((freq, i) => {
+        const p = freq / l;
+        return Math.max(0.01, p * (1 + 0.6 * (p * last10.length - recentLucky[i])));
+      }),
+    };
+  })();
+
+  function pickSmart() {
+    for (let t = 0; t < 2000; t++) {
+      const nums    = weightedSample(smartMainW, 5);
+      const odd     = nums.filter(n => n % 2 !== 0).length;
+      const high    = nums.filter(n => n >= 25).length;
+      const sum     = nums.reduce((a, b) => a + b, 0);
+      const decades = new Set(nums.map(n => Math.ceil(n / 10))).size;
+      if (odd >= 2 && odd <= 3 && high >= 2 && high <= 3 && sum >= sumP10 && sum <= sumP90 && decades >= 3)
+        return nums;
+    }
+    return weightedSample(smartMainW, 5);
+  }
+
   const strategies = {
     'aleatório':  { pick: () => pickNumbers(5, 49),           luckyW: Array(13).fill(1) },
     equilibrada:  { pick: pickEquilibrada,                    luckyW: luckyFreqW },
     quente:       { pick: () => weightedSample(mainFreqW, 5), luckyW: luckyFreqW },
     fria:         { pick: () => weightedSample(mainAbsW,  5), luckyW: luckyAbsW  },
+    smart:        { pick: pickSmart,                          luckyW: smartLuckyW },
   };
 
   const descs = {
@@ -740,6 +781,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     equilibrada:  `Filtra combinações que seguem os padrões mais frequentes: 2–3 ímpares, 2–3 altos, soma entre ${sumP10} e ${sumP90}.`,
     quente:       'Favorece números com mais saídas históricas — os mais frequentes do arquivo.',
     fria:         'Favorece números com mais sorteios de ausência — os mais "atrasados" historicamente.',
+    smart:        `Combina frequência histórica com os últimos ${last10.length} sorteios: pondera números abaixo da sua média recente e aplica os filtros de equilíbrio da estratégia Equilibrada.`,
   };
 
   const SMART_REFRESH_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
