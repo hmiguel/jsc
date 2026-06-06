@@ -152,6 +152,32 @@ body {
 }
 .field input[type="number"]:focus { border-color: var(--primary); }
 
+/* ── Stepper ─────────────────────────────────── */
+.stepper {
+  display: flex;
+  align-items: stretch;
+  border: 2px solid var(--border);
+  width: 100%;
+}
+.stepper-btn {
+  flex: 0 0 2.5rem;
+  border: none; background: var(--surface);
+  color: var(--text); font-size: 1.1rem; font-weight: 700;
+  cursor: pointer; font-family: var(--mono);
+  transition: background .1s;
+}
+.stepper-btn:hover { background: var(--border); }
+.stepper-btn:active { background: var(--primary); color: #fff; }
+.stepper-val {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700; font-size: .9rem;
+  color: var(--text); background: var(--surface);
+  border-left: 2px solid var(--border);
+  border-right: 2px solid var(--border);
+  user-select: none;
+}
+
 /* ── Generate button ────────────────────────── */
 .btn-primary {
   width: 100%;
