@@ -804,12 +804,23 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       : 0;
   }
 
-  // Auto-generate first row on load
+  // Restore saved bets or auto-generate first row
   (function() {
-    const { luckyW } = strategies[currentStrategy];
-    const tmp = document.createElement('div');
-    tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), pickLucky(luckyW), 0);
-    results.appendChild(tmp.firstElementChild);
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem('jsc-cart') || '[]'); } catch (e) {}
+    if (saved.length > 0) {
+      saved.forEach((bet, i) => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = renderSmartLine(bet.numbers, bet.lucky, i);
+        results.appendChild(tmp.firstElementChild);
+      });
+    } else {
+      const { luckyW } = strategies[currentStrategy];
+      const tmp = document.createElement('div');
+      tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), pickLucky(luckyW), 0);
+      results.appendChild(tmp.firstElementChild);
+    }
+    linesInput.value = rowCount();
   })();
 
   function rowCount() { return results.querySelectorAll('.bet-entry').length; }
@@ -868,7 +879,10 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 <!-- ── Cart script ──────────────────────────── -->
 <script>
   // ── State ────────────────────────────────────
-  const cart: { numbers: number[]; lucky: number }[] = [];
+  const CART_KEY = 'jsc-cart';
+  const cart: { numbers: number[]; lucky: number }[] = (() => {
+    try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch { return []; }
+  })();
 
   const cartToggle     = document.getElementById('cart-toggle') as HTMLButtonElement;
   const cartPanel      = document.getElementById('cart-panel')!;
@@ -899,6 +913,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   const BET_PRICE = 1.00;
 
   function renderCart() {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
     const n = cart.length;
     if (n > 0) {
       checkoutStatus.textContent = '';
@@ -979,6 +994,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   }
 
   setupAddListeners('smart-results');
+  renderCart();
 
   // ── Add all to cart ───────────────────────────
   const resultsHeader = document.getElementById('smart-results-header')!;
@@ -1045,7 +1061,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     }
 
     checkoutBtn.disabled = false;
-    checkoutBtn.textContent = 'Finalizar Aposta →';
+    checkoutBtn.textContent = 'Finalizar Aposta';
   });
 </script>
 
@@ -1149,7 +1165,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   <div class="cart-panel-items"><div id="cart-items"></div></div>
   <div class="cart-panel-footer">
     <div class="cart-total" id="cart-total"></div>
-    <button id="checkout-btn" class="btn-primary">Finalizar Aposta →</button>
+    <button id="checkout-btn" class="btn-primary">Finalizar Aposta</button>
     <p id="checkout-status" class="checkout-status"></p>
   </div>
 </div>
