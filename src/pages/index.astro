@@ -270,9 +270,10 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
           <button class="stepper-btn" id="lines-inc" aria-label="Mais" tabindex="-1">+</button>
         </div>
       </div>
-      <button id="smart-btn" class="btn-primary" style="margin-top:.75rem">
-        Gerar aposta
-      </button>
+
+    </div>
+    <div id="smart-results-header" hidden>
+      <button id="btn-add-all" class="btn-add-cart" style="margin-bottom:.5rem">+ Adicionar tudo ao carrinho</button>
     </div>
     <div id="smart-results"></div>
   </div>
@@ -757,24 +758,63 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
   // Stepper buttons
   const linesInput = document.getElementById('smart-lines-input');
-  document.getElementById('lines-dec').addEventListener('click', () => {
-    if (linesInput.value > 1) linesInput.value = +linesInput.value - 1;
-  });
-  document.getElementById('lines-inc').addEventListener('click', () => {
-    if (linesInput.value < 20) linesInput.value = +linesInput.value + 1;
-  });
+  const results    = document.getElementById('smart-results');
 
-  // Generate
-  document.getElementById('smart-btn').addEventListener('click', () => {
-    const count = Math.max(1, Math.min(20, parseInt(linesInput.value, 10) || 1));
+  function getExcluded() {
     const avoidRepeat = document.getElementById('avoid-repeats').checked;
-    const excluded    = avoidRepeat ? new Set(lastDraw.numbers) : new Set();
-    const { luckyW }  = strategies[currentStrategy];
-    const results     = document.getElementById('smart-results');
+    return avoidRepeat ? new Set(lastDraw.numbers) : new Set();
+  }
+  function nextIndex() {
+    const entries = results.querySelectorAll('.bet-entry');
+    return entries.length > 0
+      ? Math.max(...[...entries].map(e => parseInt(e.dataset.index, 10))) + 1
+      : 0;
+  }
 
-    results.innerHTML = Array.from({ length: count }, (_, i) =>
-      renderSmartLine(pickWithFilter(excluded), pickLucky(luckyW), i)
-    ).join('');
+  // Auto-generate first row on load
+  (function() {
+    const { luckyW } = strategies[currentStrategy];
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), pickLucky(luckyW), 0);
+    results.appendChild(tmp.firstElementChild);
+  })();
+
+  function rowCount() { return results.querySelectorAll('.bet-entry').length; }
+
+  function addRow() {
+    const { luckyW } = strategies[currentStrategy];
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), pickLucky(luckyW), nextIndex());
+    results.appendChild(tmp.firstElementChild);
+    linesInput.value = rowCount();
+  }
+
+  function removeLastRow() {
+    const entries = results.querySelectorAll('.bet-entry');
+    if (entries.length > 1) {
+      entries[entries.length - 1].remove();
+      linesInput.value = rowCount();
+    }
+  }
+
+  function syncRows(target) {
+    const current = rowCount();
+    if (target > current) {
+      for (let i = current; i < target; i++) addRow();
+    } else if (target < current) {
+      const entries = [...results.querySelectorAll('.bet-entry')];
+      entries.slice(target).forEach(e => e.remove());
+      linesInput.value = rowCount();
+    }
+  }
+
+  document.getElementById('lines-dec').addEventListener('click', () => { if (rowCount() > 1) removeLastRow(); });
+  document.getElementById('lines-inc').addEventListener('click', () => { if (rowCount() < 20) addRow(); });
+
+  linesInput.addEventListener('change', () => {
+    const target = Math.max(1, Math.min(20, parseInt(linesInput.value, 10) || 1));
+    linesInput.value = target;
+    syncRows(target);
   });
 
   // Refresh individual smart bet
@@ -858,16 +898,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       });
     });
 
-    // Sync add-to-cart buttons with current cart state
-    document.querySelectorAll<HTMLButtonElement>('.btn-add-cart').forEach(btn => {
-      const entry = btn.closest<HTMLElement>('[data-numbers]');
-      if (!entry) return;
-      const inCart = cart.some(
-        b => b.numbers.join(',') === entry.dataset.numbers && String(b.lucky) === entry.dataset.lucky
-      );
-      btn.textContent = inCart ? '✓ Adicionado' : '+ Carrinho';
-      btn.classList.toggle('added', inCart);
-    });
+    syncBetButtons();
   }
 
   // ── Toggle panel ──────────────────────────────
@@ -883,6 +914,18 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   });
 
   // ── Add to cart via event delegation ─────────
+  function syncBetButtons() {
+    document.querySelectorAll<HTMLElement>('[data-numbers]').forEach(entry => {
+      const btn = entry.querySelector<HTMLButtonElement>('.btn-add-cart');
+      if (!btn) return;
+      const numbers = entry.dataset.numbers!.split(',').map(Number);
+      const lucky   = Number(entry.dataset.lucky);
+      const inCart  = cart.some(b => b.numbers.join() === numbers.join() && b.lucky === lucky);
+      btn.textContent = inCart ? '✕ Remover' : '+ Carrinho';
+      btn.classList.toggle('added', inCart);
+    });
+  }
+
   function setupAddListeners(containerId: string) {
     document.getElementById(containerId)!.addEventListener('click', e => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.btn-add-cart');
@@ -891,14 +934,43 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       if (!entry) return;
       const numbers = entry.dataset.numbers!.split(',').map(Number);
       const lucky   = Number(entry.dataset.lucky);
-      cart.push({ numbers, lucky });
+      const idx = cart.findIndex(b => b.numbers.join() === numbers.join() && b.lucky === lucky);
+      if (idx === -1) {
+        cart.push({ numbers, lucky });
+      } else {
+        cart.splice(idx, 1);
+      }
       renderCart();
-      btn.textContent = '✓ Adicionado';
-      btn.classList.add('added');
+      syncBetButtons();
     });
   }
 
   setupAddListeners('smart-results');
+
+  // ── Add all to cart ───────────────────────────
+  const resultsHeader = document.getElementById('smart-results-header')!;
+
+  new MutationObserver(() => {
+    const hasRows = results.querySelectorAll('.bet-entry').length > 0;
+    resultsHeader.hidden = !hasRows;
+    const addAllBtn = document.getElementById('btn-add-all') as HTMLButtonElement;
+    addAllBtn.textContent = '+ Adicionar tudo ao carrinho';
+    addAllBtn.classList.remove('added');
+  }).observe(results, { childList: true });
+
+  document.getElementById('btn-add-all')!.addEventListener('click', () => {
+    results.querySelectorAll<HTMLElement>('[data-numbers]').forEach(entry => {
+      const numbers = entry.dataset.numbers!.split(',').map(Number);
+      const lucky   = Number(entry.dataset.lucky);
+      const alreadyIn = cart.some(b => b.numbers.join() === numbers.join() && b.lucky === lucky);
+      if (!alreadyIn) cart.push({ numbers, lucky });
+    });
+    const addAllBtn = document.getElementById('btn-add-all') as HTMLButtonElement;
+    addAllBtn.textContent = '✓ Tudo adicionado';
+    addAllBtn.classList.add('added');
+    renderCart();
+    syncBetButtons();
+  });
 
   // ── Clear cart ────────────────────────────────
   document.getElementById('cart-clear')!.addEventListener('click', () => {

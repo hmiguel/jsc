@@ -158,9 +158,10 @@ body {
   align-items: stretch;
   gap: .35rem;
 }
-.input-stepper input[type="number"] { flex: 1; box-shadow: 2px 2px 0 #111; }
+.input-stepper input[type="number"] { flex: 1; height: 2.5rem; box-shadow: 2px 2px 0 #111; text-align: center; }
 .stepper-btn {
-  flex: 0 0 2.2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   font-size: .85rem; font-weight: 700; font-family: inherit;
   border: 2px solid var(--border); border-radius: 0;
   background: transparent; color: var(--muted);
@@ -170,6 +171,9 @@ body {
 }
 .stepper-btn:hover { background: var(--text); color: #fff; }
 .stepper-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+#lines-inc { background: var(--primary); color: #fff; }
+#lines-inc:hover { background: #d4632e; border-color: #d4632e; }
+#lines-inc:active { transform: translate(2px, 2px); box-shadow: none; }
 
 /* ── Generate button ────────────────────────── */
 .btn-primary {
@@ -558,7 +562,6 @@ body {
   color: #fff;
   border-color: var(--border);
   box-shadow: 2px 2px 0 #111;
-  pointer-events: none;
 }
 
 /* ── Refresh bet button ──────────────────────── */
