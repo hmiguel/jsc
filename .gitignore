@@ -4,3 +4,4 @@ dist/
 .env
 .env.*
 *.zip
+src/data/totoloto.jsonl
