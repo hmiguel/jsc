@@ -1,7 +1,7 @@
 ---
 const SITE_URL = 'https://totoloto.lixo.dev';
 const EXT_NAME = 'Totoloto → JSC';
-const UPDATED  = '2026-06-05';
+const UPDATED  = '2026-06-06';
 ---
 <!doctype html>
 <html lang="pt">
@@ -30,127 +30,140 @@ const UPDATED  = '2026-06-05';
       line-height: 1.7;
       padding: 2.5rem 1.25rem 4rem;
     }
-    .wrap {
-      max-width: 680px;
-      margin: 0 auto;
-    }
-    .back {
-      display: inline-block;
-      font-size: .75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      color: #555;
-      text-decoration: none;
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 2rem;
     }
+    .back {
+      font-size: .75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: #555; text-decoration: none;
+    }
     .back:hover { color: #e67541; }
-    h1 {
-      font-size: 1.6rem;
-      font-weight: 800;
-      letter-spacing: -.5px;
-      margin-bottom: .35rem;
+    .lang-switch { display: flex; gap: .5rem; }
+    .lang-btn {
+      font-size: .7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      padding: .2rem .5rem;
+      border: 2px solid #1a1a1a;
+      background: transparent; color: #555;
+      cursor: pointer; font-family: inherit;
+      text-decoration: none;
     }
-    .updated {
-      font-size: .75rem;
-      color: #888;
-      margin-bottom: 2.5rem;
-    }
-    h2 {
-      font-size: .8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: #555;
-      margin: 2rem 0 .6rem;
-    }
+    .lang-btn.active { background: #1a1a1a; color: #fff; }
+    .lang-btn:hover:not(.active) { background: #f5f5f5; }
+    h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.5px; margin-bottom: .35rem; }
+    .updated { font-size: .75rem; color: #888; margin-bottom: 2.5rem; }
+    h2 { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #555; margin: 2rem 0 .6rem; }
     p { margin-bottom: .9rem; font-size: .95rem; color: #333; }
-    ul {
-      margin: .4rem 0 .9rem 1.25rem;
-      font-size: .95rem;
-      color: #333;
-    }
+    ul { margin: .4rem 0 .9rem 1.25rem; font-size: .95rem; color: #333; }
     li { margin-bottom: .3rem; }
     a { color: #e67541; }
-    .pill {
-      display: inline-block;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      font-size: .78rem;
-      font-family: 'JetBrains Mono', monospace;
-      padding: .1rem .45rem;
-      margin: 0 .1rem;
-    }
+    .pill { display: inline-block; background: #f5f5f5; border: 1px solid #ddd; font-size: .78rem; font-family: monospace; padding: .1rem .45rem; }
+    [lang-content] { display: none; }
+    [lang-content].active { display: block; }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="/">← totoloto.lixo.dev</a>
+  <div class="top-row">
+    <a class="back" href="/">← totoloto.lixo.dev</a>
+    <div class="lang-switch">
+      <a class="lang-btn" id="btn-pt" href="?lang=pt">PT</a>
+      <a class="lang-btn" id="btn-en" href="?lang=en">EN</a>
+    </div>
+  </div>
 
-  <h1>Política de Privacidade</h1>
-  <p class="updated">Extensão <strong>{EXT_NAME}</strong> · Última actualização: {UPDATED}</p>
+  <!-- Portuguese -->
+  <div lang-content="pt">
+    <h1>Política de Privacidade</h1>
+    <p class="updated">Extensão <strong>{EXT_NAME}</strong> · Última actualização: {UPDATED}</p>
 
-  <h2>Resumo</h2>
-  <p>
-    Esta extensão não recolhe, armazena nem transmite quaisquer dados pessoais para servidores próprios.
-    Toda a actividade ocorre localmente no teu browser.
-  </p>
+    <h2>Resumo</h2>
+    <p>Esta extensão não recolhe, armazena nem transmite quaisquer dados pessoais para servidores próprios. Toda a actividade ocorre localmente no teu browser.</p>
 
-  <h2>O que a extensão faz</h2>
-  <p>
-    A extensão <strong>{EXT_NAME}</strong> permite enviar apostas geradas em
-    <a href={SITE_URL}>{SITE_URL}</a> directamente para o carrinho de apostas do
-    Jogos Santa Casa (<a href="https://www.jogossantacasa.pt" target="_blank" rel="noopener">jogossantacasa.pt</a>),
-    utilizando a sessão já existente no teu browser.
-  </p>
+    <h2>O que a extensão faz</h2>
+    <p>A extensão <strong>{EXT_NAME}</strong> permite enviar apostas geradas em <a href={SITE_URL}>{SITE_URL}</a> directamente para o carrinho de apostas do Jogos Santa Casa (<a href="https://www.jogossantacasa.pt" target="_blank" rel="noopener">jogossantacasa.pt</a>), utilizando uma sessão anónima criada de raiz.</p>
 
-  <h2>Dados acedidos</h2>
-  <ul>
-    <li>
-      <strong>Cookie <span class="pill">JSESSIONID</span> do jogossantacasa.pt</strong> —
-      lido e temporariamente reescrito para garantir que todas as apostas são adicionadas
-      à mesma sessão. Não é armazenado nem enviado para fora do teu browser.
-    </li>
-    <li>
-      <strong>Números de aposta</strong> — os números que tu próprio gerou na página,
-      enviados directamente do browser para o endpoint de carrinho do Jogos Santa Casa.
-      A extensão não os armazena nem os transmite para qualquer outro destino.
-    </li>
-  </ul>
+    <h2>Dados acedidos</h2>
+    <ul>
+      <li><strong>Cookie <span class="pill">JSESSIONID</span> do jogossantacasa.pt</strong> — uma sessão anónima é criada de raiz através do servidor de totoloto.lixo.dev. Qualquer sessão existente é removida antes do processo. Nenhuma conta de jogador é acedida.</li>
+      <li><strong>Números de aposta</strong> — os números gerados pelo utilizador são enviados directamente para o endpoint do carrinho do Jogos Santa Casa. A extensão não os armazena nem transmite para qualquer outro destino.</li>
+    </ul>
 
-  <h2>Dados não recolhidos</h2>
-  <p>A extensão <strong>não</strong> recolhe, armazena nem transmite:</p>
-  <ul>
-    <li>Dados pessoais ou de identificação</li>
-    <li>Histórico de navegação</li>
-    <li>Credenciais de acesso ou cookies de login</li>
-    <li>Qualquer informação para servidores externos que não o próprio Jogos Santa Casa</li>
-  </ul>
+    <h2>Dados não recolhidos</h2>
+    <p>A extensão <strong>não</strong> recolhe, armazena nem transmite:</p>
+    <ul>
+      <li>Dados pessoais ou de identificação</li>
+      <li>Histórico de navegação</li>
+      <li>Credenciais de acesso ou dados de conta</li>
+      <li>Qualquer informação para servidores externos que não o próprio Jogos Santa Casa</li>
+    </ul>
 
-  <h2>Permissões utilizadas</h2>
-  <ul>
-    <li>
-      <span class="pill">cookies</span> — necessário para ler e restaurar o
-      <span class="pill">JSESSIONID</span> do jogossantacasa.pt durante o checkout.
-    </li>
-    <li>
-      <span class="pill">tabs</span> — necessário para abrir o carrinho do Jogos Santa Casa
-      após as apostas serem adicionadas.
-    </li>
-  </ul>
+    <h2>Permissões utilizadas</h2>
+    <ul>
+      <li><span class="pill">cookies</span> — necessário para definir o <span class="pill">JSESSIONID</span> anónimo no jogossantacasa.pt antes de submeter as apostas.</li>
+      <li><span class="pill">tabs</span> — necessário para abrir o carrinho do Jogos Santa Casa após as apostas serem adicionadas.</li>
+    </ul>
 
-  <h2>Serviços de terceiros</h2>
-  <p>
-    A extensão comunica exclusivamente com <strong>www.jogossantacasa.pt</strong>,
-    o serviço oficial dos Jogos Santa Casa. Não são utilizados serviços de análise,
-    rastreamento ou publicidade.
-  </p>
+    <h2>Serviços de terceiros</h2>
+    <p>A extensão comunica exclusivamente com <strong>totoloto.lixo.dev</strong> (para obter a sessão anónima) e <strong>www.jogossantacasa.pt</strong> (para submeter apostas). Não são utilizados serviços de análise, rastreamento ou publicidade.</p>
 
-  <h2>Contacto</h2>
-  <p>
-    Para questões relacionadas com privacidade, contacta
-    <a href="mailto:hugo.s.conceicao@gmail.com">hugo.s.conceicao@gmail.com</a>.
-  </p>
+    <h2>Contacto</h2>
+    <p>Para questões relacionadas com privacidade, contacta <a href="mailto:hugo.s.conceicao@gmail.com">hugo.s.conceicao@gmail.com</a>.</p>
+  </div>
+
+  <!-- English -->
+  <div lang-content="en">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Extension <strong>{EXT_NAME}</strong> · Last updated: {UPDATED}</p>
+
+    <h2>Summary</h2>
+    <p>This extension does not collect, store or transmit any personal data to its own servers. All activity happens locally in your browser.</p>
+
+    <h2>What the extension does</h2>
+    <p>The <strong>{EXT_NAME}</strong> extension sends lottery bets generated on <a href={SITE_URL}>{SITE_URL}</a> directly to the Jogos Santa Casa betting cart (<a href="https://www.jogossantacasa.pt" target="_blank" rel="noopener">jogossantacasa.pt</a>), using a fresh anonymous session.</p>
+
+    <h2>Data accessed</h2>
+    <ul>
+      <li><strong><span class="pill">JSESSIONID</span> cookie on jogossantacasa.pt</strong> — a fresh anonymous session is created via the totoloto.lixo.dev server. Any existing session is cleared beforehand. No player account is accessed.</li>
+      <li><strong>Bet numbers</strong> — numbers generated by the user are sent directly to the Jogos Santa Casa cart endpoint. The extension does not store or forward them anywhere else.</li>
+    </ul>
+
+    <h2>Data not collected</h2>
+    <p>The extension does <strong>not</strong> collect, store or transmit:</p>
+    <ul>
+      <li>Personal or identifying data</li>
+      <li>Browsing history</li>
+      <li>Login credentials or account data</li>
+      <li>Any information to servers other than Jogos Santa Casa</li>
+    </ul>
+
+    <h2>Permissions used</h2>
+    <ul>
+      <li><span class="pill">cookies</span> — required to set an anonymous <span class="pill">JSESSIONID</span> on jogossantacasa.pt before submitting bets.</li>
+      <li><span class="pill">tabs</span> — required to open the Jogos Santa Casa cart page after bets have been added.</li>
+    </ul>
+
+    <h2>Third-party services</h2>
+    <p>The extension communicates exclusively with <strong>totoloto.lixo.dev</strong> (to obtain an anonymous session) and <strong>www.jogossantacasa.pt</strong> (to submit bets). No analytics, tracking or advertising services are used.</p>
+
+    <h2>Contact</h2>
+    <p>For privacy-related questions, contact <a href="mailto:hugo.s.conceicao@gmail.com">hugo.s.conceicao@gmail.com</a>.</p>
+  </div>
 </div>
+
+<script>
+  const lang = new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : 'pt';
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[lang-content]').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('lang-content') === lang);
+  });
+  document.getElementById('btn-pt').classList.toggle('active', lang === 'pt');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+</script>
 </body>
 </html>
