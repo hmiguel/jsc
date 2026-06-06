@@ -4,7 +4,6 @@
   "version": "1.0",
   "description": "Envia apostas geradas em totoloto.lixo.dev para o carrinho do Jogos Santa Casa, com um clique.",
   "homepage_url": "https://totoloto.lixo.dev",
-  "privacy_policy_url": "https://totoloto.lixo.dev/privacy",
   "minimum_chrome_version": "117",
   "icons": {
     "16":  "icons/icon16.png",
