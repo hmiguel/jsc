@@ -153,30 +153,21 @@ body {
 .field input[type="number"]:focus { border-color: var(--primary); }
 
 /* ── Stepper ─────────────────────────────────── */
-.stepper {
+.input-stepper {
   display: flex;
   align-items: stretch;
-  border: 2px solid var(--border);
-  width: 100%;
+  gap: .35rem;
 }
+.input-stepper input[type="number"] { flex: 1; }
 .stepper-btn {
-  flex: 0 0 2.5rem;
-  border: none; background: var(--surface);
-  color: var(--text); font-size: 1.1rem; font-weight: 700;
+  flex: 0 0 2.2rem;
+  border: 2px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 1rem; font-weight: 700;
   cursor: pointer; font-family: var(--mono);
-  transition: background .1s;
+  transition: background .1s, border-color .1s;
 }
-.stepper-btn:hover { background: var(--border); }
-.stepper-btn:active { background: var(--primary); color: #fff; }
-.stepper-val {
-  flex: 1;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-weight: 700; font-size: .9rem;
-  color: var(--text); background: var(--surface);
-  border-left: 2px solid var(--border);
-  border-right: 2px solid var(--border);
-  user-select: none;
-}
+.stepper-btn:hover { border-color: var(--primary); color: var(--primary); }
+.stepper-btn:active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
 /* ── Generate button ────────────────────────── */
 .btn-primary {

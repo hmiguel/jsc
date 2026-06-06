@@ -263,11 +263,11 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       </label>
 
       <div class="field" style="margin-top:.75rem">
-        <label>Número de chaves</label>
-        <div class="stepper">
-          <button class="stepper-btn" id="lines-dec" aria-label="Menos">−</button>
-          <span id="smart-lines-input" class="stepper-val">1</span>
-          <button class="stepper-btn" id="lines-inc" aria-label="Mais">+</button>
+        <label for="smart-lines-input">Número de chaves</label>
+        <div class="input-stepper">
+          <button class="stepper-btn" id="lines-dec" aria-label="Menos" tabindex="-1">−</button>
+          <input id="smart-lines-input" type="number" min="1" max="20" value="1" />
+          <button class="stepper-btn" id="lines-inc" aria-label="Mais" tabindex="-1">+</button>
         </div>
       </div>
       <button id="smart-btn" class="btn-primary" style="margin-top:.75rem">
@@ -755,21 +755,18 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     });
   });
 
-  // Stepper
-  const stepperVal = document.getElementById('smart-lines-input');
-  const MIN_LINES = 1, MAX_LINES = 20;
+  // Stepper buttons
+  const linesInput = document.getElementById('smart-lines-input');
   document.getElementById('lines-dec').addEventListener('click', () => {
-    const v = parseInt(stepperVal.textContent, 10);
-    if (v > MIN_LINES) stepperVal.textContent = v - 1;
+    if (linesInput.value > 1) linesInput.value = +linesInput.value - 1;
   });
   document.getElementById('lines-inc').addEventListener('click', () => {
-    const v = parseInt(stepperVal.textContent, 10);
-    if (v < MAX_LINES) stepperVal.textContent = v + 1;
+    if (linesInput.value < 20) linesInput.value = +linesInput.value + 1;
   });
 
   // Generate
   document.getElementById('smart-btn').addEventListener('click', () => {
-    const count = parseInt(document.getElementById('smart-lines-input').textContent, 10);
+    const count = Math.max(1, Math.min(20, parseInt(linesInput.value, 10) || 1));
     const avoidRepeat = document.getElementById('avoid-repeats').checked;
     const excluded    = avoidRepeat ? new Set(lastDraw.numbers) : new Set();
     const { luckyW }  = strategies[currentStrategy];
