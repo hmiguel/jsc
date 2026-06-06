@@ -234,32 +234,16 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       <span class="card-label">Gerar Apostas</span>
     </div>
     <div class="card-body">
-      <div class="field">
-        <label for="lines-input">Número de chaves</label>
-        <input id="lines-input" type="number" min="1" max="20" value="1" />
-      </div>
-      <button id="generate-btn" class="btn-primary" style="margin-top:.75rem">
-        Gerar números
-      </button>
-    </div>
-    <div id="results"></div>
-  </div>
-
-  <!-- ── Smart picker ────────────────────────── -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-label">Aposta inteligente</span>
-    </div>
-    <div class="card-body">
       <div style="margin-bottom:.75rem">
         <div class="field-label">Estratégia</div>
         <div class="strategy-pills" id="strategy-pills">
-          <button class="strategy-pill active" data-strategy="equilibrada">Equilibrada</button>
+          <button class="strategy-pill active" data-strategy="aleatório">Aleatório</button>
+          <button class="strategy-pill" data-strategy="equilibrada">Equilibrada</button>
           <button class="strategy-pill" data-strategy="quente">Quente</button>
           <button class="strategy-pill" data-strategy="fria">Fria</button>
         </div>
         <div class="strategy-desc" id="strategy-desc">
-          Filtra combinações que seguem os padrões mais frequentes: 2–3 ímpares, 2–3 altos, soma entre {sumP10} e {sumP90}.
+          Gera 5 números e 1 número da sorte completamente ao acaso, sem qualquer filtro estatístico.
         </div>
       </div>
       <!-- Last draw reference -->
@@ -283,7 +267,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
         <input id="smart-lines-input" type="number" min="1" max="20" value="1" />
       </div>
       <button id="smart-btn" class="btn-primary" style="margin-top:.75rem">
-        Gerar aposta inteligente
+        Gerar aposta
       </button>
     </div>
     <div id="smart-results"></div>
@@ -646,8 +630,11 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
 </div>
 
-<script>
-  function pickNumbers(count: number, max: number): number[] {
+<!-- ── Generator + Smart picker script ─────────── -->
+<script define:vars={{ mainFreqW, luckyFreqW, mainAbsW, luckyAbsW, sumP10, sumP90, lastDraw }}>
+
+  // ── Helpers ─────────────────────────────────
+  function pickNumbers(count, max) {
     const pool = Array.from({ length: max }, (_, i) => i + 1);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -656,38 +643,6 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     return pool.slice(0, count).sort((a, b) => a - b);
   }
 
-  function renderLine(main: number[], lucky: number, index: number): string {
-    const balls    = main.map(n => `<span class="ball">${n}</span>`).join('');
-    const luckyBall = `<span class="ball ball--lucky" title="Número da sorte">${lucky}</span>`;
-    return `
-      <div class="bet-entry" data-numbers="${main.join(',')}" data-lucky="${lucky}">
-        <div class="line" aria-label="Chave ${index + 1}">
-          <span class="line-label">Chave ${index + 1}</span>
-          <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
-        </div>
-        <div class="bet-actions">
-          <button class="btn-add-cart">+ Carrinho</button>
-        </div>
-      </div>`;
-  }
-
-  document.getElementById('generate-btn')!.addEventListener('click', () => {
-    const input = document.getElementById('lines-input') as HTMLInputElement;
-    const count = Math.max(1, Math.min(20, parseInt(input.value, 10) || 1));
-    const results = document.getElementById('results')!;
-
-    results.innerHTML = Array.from({ length: count }, (_, i) => {
-      const main  = pickNumbers(5, 49);
-      const lucky = pickNumbers(1, 13)[0];
-      return renderLine(main, lucky, i);
-    }).join('');
-  });
-</script>
-
-<!-- ── Smart picker script ──────────────────── -->
-<script define:vars={{ mainFreqW, luckyFreqW, mainAbsW, luckyAbsW, sumP10, sumP90, lastDraw }}>
-
-  // ── Helpers ─────────────────────────────────
   function weightedSample(weights, count) {
     const pool = weights.map((w, i) => ({ i, w: Math.max(w, 0.01) }));
     const result = [];
@@ -726,16 +681,20 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   }
 
   const strategies = {
-    equilibrada: { pick: pickEquilibrada, luckyW: luckyFreqW },
-    quente:      { pick: () => weightedSample(mainFreqW, 5), luckyW: luckyFreqW },
-    fria:        { pick: () => weightedSample(mainAbsW,  5), luckyW: luckyAbsW  },
+    'aleatório':  { pick: () => pickNumbers(5, 49),           luckyW: Array(13).fill(1) },
+    equilibrada:  { pick: pickEquilibrada,                    luckyW: luckyFreqW },
+    quente:       { pick: () => weightedSample(mainFreqW, 5), luckyW: luckyFreqW },
+    fria:         { pick: () => weightedSample(mainAbsW,  5), luckyW: luckyAbsW  },
   };
 
   const descs = {
-    equilibrada: `Filtra combinações que seguem os padrões mais frequentes: 2–3 ímpares, 2–3 altos, soma entre ${sumP10} e ${sumP90}.`,
-    quente:      'Favorece números com mais saídas históricas — os mais frequentes do arquivo.',
-    fria:        'Favorece números com mais sorteios de ausência — os mais "atrasados" historicamente.',
+    'aleatório':  'Gera 5 números e 1 número da sorte completamente ao acaso, sem qualquer filtro estatístico.',
+    equilibrada:  `Filtra combinações que seguem os padrões mais frequentes: 2–3 ímpares, 2–3 altos, soma entre ${sumP10} e ${sumP90}.`,
+    quente:       'Favorece números com mais saídas históricas — os mais frequentes do arquivo.',
+    fria:         'Favorece números com mais sorteios de ausência — os mais "atrasados" historicamente.',
   };
+
+  const SMART_REFRESH_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
 
   // ── Annotation ──────────────────────────────
   function annotate(nums) {
@@ -751,7 +710,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       <span class="${oddOk  ? 'ann-ok' : 'ann-warn'}">${odd}í+${even}p</span>
       <span class="${highOk ? 'ann-ok' : 'ann-warn'}">${low}bx+${high}alt</span>
       <span class="${sumOk  ? 'ann-ok' : 'ann-warn'}">Σ ${sum}</span>
-      <button class="btn-add-cart" style="margin-left:auto">+ Carrinho</button>
+      <button class="btn-refresh" style="margin-left:auto" title="Gerar nova chave" aria-label="Gerar nova chave">${SMART_REFRESH_ICON}</button>
+      <button class="btn-add-cart">+ Carrinho</button>
     </div>`;
   }
 
@@ -760,7 +720,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     const balls = nums.map(n => `<span class="ball">${n}</span>`).join('');
     const luckyBall = `<span class="ball ball--lucky">${lucky}</span>`;
     return `
-      <div class="bet-entry" data-numbers="${nums.join(',')}" data-lucky="${lucky}">
+      <div class="bet-entry" data-numbers="${nums.join(',')}" data-lucky="${lucky}" data-index="${index}">
         <div class="line" aria-label="Chave ${index + 1}">
           <span class="line-label">Chave ${index + 1}</span>
           <div class="balls">${balls}<span class="balls-sep">+</span>${luckyBall}</div>
@@ -770,7 +730,16 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   }
 
   // ── State ────────────────────────────────────
-  let currentStrategy = 'equilibrada';
+  let currentStrategy = 'aleatório';
+
+  function pickWithFilter(excluded) {
+    const { pick } = strategies[currentStrategy];
+    for (let t = 0; t < 500; t++) {
+      const nums = pick();
+      if (!nums.some(n => excluded.has(n))) return nums;
+    }
+    return strategies[currentStrategy].pick();
+  }
 
   // Strategy pills
   document.querySelectorAll('.strategy-pill').forEach(btn => {
@@ -791,18 +760,23 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     const { luckyW }  = strategies[currentStrategy];
     const results     = document.getElementById('smart-results');
 
-    function pickWithFilter() {
-      const { pick } = strategies[currentStrategy];
-      for (let t = 0; t < 500; t++) {
-        const nums = pick();
-        if (!nums.some(n => excluded.has(n))) return nums;
-      }
-      return strategies[currentStrategy].pick();
-    }
-
     results.innerHTML = Array.from({ length: count }, (_, i) =>
-      renderSmartLine(pickWithFilter(), pickLucky(luckyW), i)
+      renderSmartLine(pickWithFilter(excluded), pickLucky(luckyW), i)
     ).join('');
+  });
+
+  // Refresh individual smart bet
+  document.getElementById('smart-results').addEventListener('click', e => {
+    const btn = e.target.closest('.btn-refresh');
+    if (!btn) return;
+    const entry = btn.closest('.bet-entry');
+    const index = parseInt(entry.dataset.index, 10);
+    const avoidRepeat = document.getElementById('avoid-repeats').checked;
+    const excluded    = avoidRepeat ? new Set(lastDraw.numbers) : new Set();
+    const { luckyW }  = strategies[currentStrategy];
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderSmartLine(pickWithFilter(excluded), pickLucky(luckyW), index);
+    entry.replaceWith(tmp.firstElementChild);
   });
 </script>
 
@@ -815,6 +789,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   const cartPanel      = document.getElementById('cart-panel')!;
   const cartItemsEl    = document.getElementById('cart-items')!;
   const cartBadgeEl    = document.getElementById('cart-badge')!;
+  const cartTotalEl    = document.getElementById('cart-total')!;
   const checkoutBtn    = document.getElementById('checkout-btn') as HTMLButtonElement;
   const checkoutStatus = document.getElementById('checkout-status')!;
 
@@ -836,10 +811,19 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   // later it will announce itself via JSC_EXT_READY automatically.
   window.postMessage({ type: 'JSC_EXT_PING' }, '*');
 
+  const BET_PRICE = 1.00;
+
   function renderCart() {
     const n = cart.length;
+    if (n > 0) {
+      checkoutStatus.textContent = '';
+      checkoutStatus.className = 'checkout-status';
+    }
     cartBadgeEl.textContent = String(n);
     cartBadgeEl.hidden = n === 0;
+    cartTotalEl.textContent = n > 0
+      ? `${n} aposta${n > 1 ? 's' : ''} · ${(n * BET_PRICE).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+      : '';
     cartToggle.classList.toggle('has-items', n > 0);
     if (n === 0) cartPanel.hidden = true;
 
@@ -902,7 +886,6 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     });
   }
 
-  setupAddListeners('results');
   setupAddListeners('smart-results');
 
   // ── Clear cart ────────────────────────────────
@@ -938,11 +921,10 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       checkoutStatus.textContent = 'Apostas enviadas para o JSC!';
       cart.length = 0;
       renderCart();
-      (document.getElementById('results') as HTMLElement).innerHTML = '';
       (document.getElementById('smart-results') as HTMLElement).innerHTML = '';
     } else {
       checkoutStatus.className = 'checkout-status err';
-      checkoutStatus.textContent = 'Sem resposta da extensão. Tenta novamente.';
+      checkoutStatus.textContent = 'Ocorreu um erro inesperado. Tenta novamente.';
     }
 
     checkoutBtn.disabled = false;
@@ -1049,6 +1031,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   </div>
   <div class="cart-panel-items"><div id="cart-items"></div></div>
   <div class="cart-panel-footer">
+    <div class="cart-total" id="cart-total"></div>
     <button id="checkout-btn" class="btn-primary">Finalizar Aposta →</button>
     <p id="checkout-status" class="checkout-status"></p>
   </div>

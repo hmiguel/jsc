@@ -1,0 +1,156 @@
+---
+const SITE_URL = 'https://totoloto.lixo.dev';
+const EXT_NAME = 'Totoloto → JSC';
+const UPDATED  = '2026-06-05';
+---
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade — {EXT_NAME}</title>
+  <meta name="description" content="Política de privacidade da extensão Chrome Totoloto → JSC.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href={`${SITE_URL}/privacy`}>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/plus-jakarta-sans.woff2">
+  <style>
+    @font-face {
+      font-family: 'Plus Jakarta Sans Variable';
+      font-style: normal;
+      font-display: swap;
+      font-weight: 200 800;
+      src: url('/fonts/plus-jakarta-sans.woff2') format('woff2-variations');
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans Variable', system-ui, sans-serif;
+      background: #fff;
+      color: #111;
+      line-height: 1.7;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    .wrap {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .back {
+      display: inline-block;
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #555;
+      text-decoration: none;
+      margin-bottom: 2rem;
+    }
+    .back:hover { color: #e67541; }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      margin-bottom: .35rem;
+    }
+    .updated {
+      font-size: .75rem;
+      color: #888;
+      margin-bottom: 2.5rem;
+    }
+    h2 {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #555;
+      margin: 2rem 0 .6rem;
+    }
+    p { margin-bottom: .9rem; font-size: .95rem; color: #333; }
+    ul {
+      margin: .4rem 0 .9rem 1.25rem;
+      font-size: .95rem;
+      color: #333;
+    }
+    li { margin-bottom: .3rem; }
+    a { color: #e67541; }
+    .pill {
+      display: inline-block;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      font-size: .78rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: .1rem .45rem;
+      margin: 0 .1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← totoloto.lixo.dev</a>
+
+  <h1>Política de Privacidade</h1>
+  <p class="updated">Extensão <strong>{EXT_NAME}</strong> · Última actualização: {UPDATED}</p>
+
+  <h2>Resumo</h2>
+  <p>
+    Esta extensão não recolhe, armazena nem transmite quaisquer dados pessoais para servidores próprios.
+    Toda a actividade ocorre localmente no teu browser.
+  </p>
+
+  <h2>O que a extensão faz</h2>
+  <p>
+    A extensão <strong>{EXT_NAME}</strong> permite enviar apostas geradas em
+    <a href={SITE_URL}>{SITE_URL}</a> directamente para o carrinho de apostas do
+    Jogos Santa Casa (<a href="https://www.jogossantacasa.pt" target="_blank" rel="noopener">jogossantacasa.pt</a>),
+    utilizando a sessão já existente no teu browser.
+  </p>
+
+  <h2>Dados acedidos</h2>
+  <ul>
+    <li>
+      <strong>Cookie <span class="pill">JSESSIONID</span> do jogossantacasa.pt</strong> —
+      lido e temporariamente reescrito para garantir que todas as apostas são adicionadas
+      à mesma sessão. Não é armazenado nem enviado para fora do teu browser.
+    </li>
+    <li>
+      <strong>Números de aposta</strong> — os números que tu próprio gerou na página,
+      enviados directamente do browser para o endpoint de carrinho do Jogos Santa Casa.
+      A extensão não os armazena nem os transmite para qualquer outro destino.
+    </li>
+  </ul>
+
+  <h2>Dados não recolhidos</h2>
+  <p>A extensão <strong>não</strong> recolhe, armazena nem transmite:</p>
+  <ul>
+    <li>Dados pessoais ou de identificação</li>
+    <li>Histórico de navegação</li>
+    <li>Credenciais de acesso ou cookies de login</li>
+    <li>Qualquer informação para servidores externos que não o próprio Jogos Santa Casa</li>
+  </ul>
+
+  <h2>Permissões utilizadas</h2>
+  <ul>
+    <li>
+      <span class="pill">cookies</span> — necessário para ler e restaurar o
+      <span class="pill">JSESSIONID</span> do jogossantacasa.pt durante o checkout.
+    </li>
+    <li>
+      <span class="pill">tabs</span> — necessário para abrir o carrinho do Jogos Santa Casa
+      após as apostas serem adicionadas.
+    </li>
+  </ul>
+
+  <h2>Serviços de terceiros</h2>
+  <p>
+    A extensão comunica exclusivamente com <strong>www.jogossantacasa.pt</strong>,
+    o serviço oficial dos Jogos Santa Casa. Não são utilizados serviços de análise,
+    rastreamento ou publicidade.
+  </p>
+
+  <h2>Contacto</h2>
+  <p>
+    Para questões relacionadas com privacidade, contacta
+    <a href="mailto:hugo.s.conceicao@gmail.com">hugo.s.conceicao@gmail.com</a>.
+  </p>
+</div>
+</body>
+</html>

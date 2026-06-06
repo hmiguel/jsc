@@ -5,12 +5,15 @@
   "scripts": {
     "dev": "wrangler pages dev --compatibility-date 2024-09-23 -- astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "icons": "node extension/generate-icons.mjs",
+    "build:ext": "node build-extension.mjs"
   },
   "dependencies": {
     "astro": "^5.0.0"
   },
   "devDependencies": {
+    "sharp": "^0.33.5",
     "wrangler": "^4.98.0"
   }
 }

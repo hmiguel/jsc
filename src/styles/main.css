@@ -510,6 +510,8 @@ body {
 .bet-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: .45rem;
   padding: .2rem 1.25rem .45rem;
 }
 
@@ -539,6 +541,26 @@ body {
   box-shadow: 2px 2px 0 #111;
   pointer-events: none;
 }
+
+/* ── Refresh bet button ──────────────────────── */
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #111;
+  flex-shrink: 0;
+  transition: background .1s, color .1s;
+}
+.btn-refresh:hover  { background: var(--surface-2); color: var(--text); }
+.btn-refresh:active { transform: translate(2px, 2px); box-shadow: none; }
 
 /* ── Cart toggle (fixed top-right) ──────────── */
 .cart-toggle {
@@ -690,6 +712,16 @@ body {
   transition: color .1s, border-color .1s;
 }
 .btn-cart-clear:hover { color: var(--primary); border-color: var(--primary); }
+
+.cart-total {
+  font-size: .78rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  margin-bottom: .6rem;
+  min-height: 1rem;
+}
 
 .checkout-status {
   margin-top: .5rem;

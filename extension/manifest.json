@@ -2,11 +2,30 @@
   "manifest_version": 3,
   "name": "Totoloto → JSC",
   "version": "1.0",
-  "description": "Envia chaves geradas para o Carrinho de Apostas do Jogos Santa Casa",
+  "description": "Envia apostas do Totoloto geradas em totoloto.lixo.dev para o carrinho de apostas do Jogos Santa Casa, com um clique.",
+  "homepage_url": "https://totoloto.lixo.dev",
+  "privacy_policy_url": "https://totoloto.lixo.dev/privacy",
+  "minimum_chrome_version": "117",
+  "icons": {
+    "16":  "icons/icon16.png",
+    "32":  "icons/icon32.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Totoloto → JSC",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "32":  "icons/icon32.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "permissions": ["cookies", "tabs"],
   "host_permissions": [
     "https://totoloto.lixo.dev/*",
-    "https://www.jogossantacasa.pt/*"
+    "https://www.jogossantacasa.pt/*",
+    "http://localhost:*/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -14,7 +33,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://totoloto.lixo.dev/*"],
+      "matches": [
+        "https://totoloto.lixo.dev/*",
+        "http://localhost:*/*"
+      ],
       "js": ["content.js"]
     }
   ]
