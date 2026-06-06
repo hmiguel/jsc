@@ -915,7 +915,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   function renderCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
     const n = cart.length;
-    if (n > 0) {
+    if (n > 0 && !checkoutBtn.disabled) {
       checkoutStatus.textContent = '';
       checkoutStatus.className = 'checkout-status';
     }

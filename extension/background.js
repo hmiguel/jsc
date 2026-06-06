@@ -1,5 +1,6 @@
 const JSC_URL        = 'https://www.jogossantacasa.pt/web/JogarApostar/';
 const JSC_CART_URL   = 'https://www.jogossantacasa.pt/web/JogarTotoloto/adicCarr';
+const JSC_GAME_URL   = 'https://www.jogossantacasa.pt/web/JogarTotoloto';
 const JSC_ORIGIN     = 'https://www.jogossantacasa.pt';
 const SESSION_API    = 'https://totoloto.lixo.dev/api/session';
 
