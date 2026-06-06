@@ -785,6 +785,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   };
 
   const SMART_REFRESH_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
+  const CART_ICON_SM = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
+  const TRASH_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 
   // ── Annotation ──────────────────────────────
   function annotate(nums) {
@@ -801,8 +803,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       <span class="${highOk ? 'ann-ok' : 'ann-warn'}">${low}bx+${high}alt</span>
       <span class="${sumOk  ? 'ann-ok' : 'ann-warn'}">Σ ${sum}</span>
       <button class="btn-refresh" style="margin-left:auto" title="Gerar nova chave" aria-label="Gerar nova chave">${SMART_REFRESH_ICON}</button>
-      <button class="btn-add-cart">+ Carrinho</button>
-      <button class="btn-remove-bet btn-cart-remove" aria-label="Remover chave">Remover</button>
+      <button class="btn-add-cart" aria-label="Adicionar ao carrinho">${CART_ICON_SM}</button>
+      <button class="btn-remove-bet btn-refresh" aria-label="Remover chave">${TRASH_ICON}</button>
     </div>`;
   }
 
@@ -1046,6 +1048,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     if (e.key === 'Escape') closeCart();
   });
 
+  const CART_ICON_SM = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
+
   // ── Add to cart via event delegation ─────────
   function syncBetButtons() {
     let allAdded = true;
@@ -1055,7 +1059,8 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       const numbers = entry.dataset.numbers!.split(',').map(Number);
       const lucky   = Number(entry.dataset.lucky);
       const inCart  = cart.some(b => b.numbers.join() === numbers.join() && b.lucky === lucky);
-      btn.textContent = inCart ? '✕ Remover' : '+ Carrinho';
+      btn.innerHTML = inCart ? '✕' : CART_ICON_SM;
+      btn.setAttribute('aria-label', inCart ? 'Remover do carrinho' : 'Adicionar ao carrinho');
       btn.classList.toggle('added', inCart);
       if (!inCart) allAdded = false;
     });
