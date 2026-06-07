@@ -1,18 +1,22 @@
 import { defineConfig } from 'astro/config';
 import { writeFileSync, mkdirSync } from 'fs';
 
-const ARCHIVE_URL = 'https://raw.githubusercontent.com/hmiguel/jsc-history/main/totoloto.jsonl';
-const ARCHIVE_LOCAL = './src/data/totoloto.jsonl';
+const ARCHIVES = [
+  { url: 'https://raw.githubusercontent.com/hmiguel/jsc-history/main/totoloto.jsonl',    local: './src/data/totoloto.jsonl' },
+  { url: 'https://raw.githubusercontent.com/hmiguel/jsc-history/main/euromillions.jsonl', local: './src/data/euromillions.jsonl' },
+];
 
 const fetchArchive = {
   name: 'fetch-archive',
   hooks: {
     'astro:config:setup': async () => {
-      const res = await fetch(ARCHIVE_URL);
-      if (!res.ok) throw new Error(`Failed to fetch archive: HTTP ${res.status}`);
       mkdirSync('./src/data', { recursive: true });
-      writeFileSync(ARCHIVE_LOCAL, await res.text());
-      console.log('[fetch-archive] totoloto.jsonl updated from jsc-history');
+      await Promise.all(ARCHIVES.map(async ({ url, local }) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to fetch ${url}: HTTP ${res.status}`);
+        writeFileSync(local, await res.text());
+        console.log(`[fetch-archive] ${local.split('/').pop()} updated from jsc-history`);
+      }));
     },
   },
 };

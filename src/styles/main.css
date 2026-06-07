@@ -105,6 +105,30 @@ body {
   .layout-col { min-width: 0; width: 100%; }
 }
 
+/* ── Game nav ───────────────────────────────── */
+.game-nav {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+.game-nav-link {
+  padding: .5rem .8rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text);
+  text-decoration: none;
+  transition: background .1s, color .1s;
+  font-family: inherit;
+}
+.game-nav-icon { align-self: center; flex-shrink: 0; }
+.game-nav-link:hover:not(.active) { background: var(--surface-2); }
+.game-nav-link:active:not(.active) { transform: translate(2px,2px); box-shadow: none; }
+.game-nav-link.active { background: var(--primary); color: #fff; }
+
 /* ── Page heading ───────────────────────────── */
 .heading {
   display: flex;
@@ -118,6 +142,7 @@ body {
   font-weight: 800;
   color: var(--text);
   letter-spacing: -.5px;
+  flex-basis: 100%;
 }
 .heading-sub {
   flex-basis: 100%;
@@ -427,7 +452,7 @@ body {
 }
 .number-tag small {
   font-size: .55rem; font-weight: 500;
-  color: var(--muted); margin-top: 1px;
+  color: inherit; opacity: .75; margin-top: 1px;
 }
 
 /* ── Strategy pills ──────────────────────────── */
@@ -653,9 +678,9 @@ body {
 
 /* ── Cart panel ──────────────────────────────── */
 .cart-panel {
-  position: fixed;
-  top: 4.5rem;
-  right: max(1.25rem, calc((100vw - 1400px) / 2 + 1.25rem));
+  position: absolute;
+  top: calc(100% + .5rem);
+  right: 0;
   z-index: 399;
   width: 420px;
   max-width: calc(100vw - 2.5rem);
@@ -1065,13 +1090,11 @@ body {
 }
 .footer-gh:hover { color: var(--primary); }
 .top-actions {
-  position: fixed;
-  top: 1.25rem;
-  right: max(1.25rem, calc((100vw - 1400px) / 2 + 1.25rem));
-  z-index: 400;
   display: flex;
   align-items: center;
   gap: .5rem;
+  margin-left: auto;
+  position: relative;
 }
 
 .bmc-btn {
@@ -1095,13 +1118,6 @@ body {
   .cart-panel,
   .chave-annotation .btn-add-cart,
   #smart-results-header { display: none !important; }
-
-  .top-actions {
-    position: static;
-    margin-left: auto;
-    top: auto;
-    right: auto;
-  }
 
   .heading {
     padding-top: .75rem;

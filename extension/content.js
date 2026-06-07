@@ -21,17 +21,19 @@ window.addEventListener('message', async (event) => {
     return;
   }
 
-  if (event.data?.type !== 'JSC_CHECKOUT') return;
+  if (event.data?.type === 'JSC_CHECKOUT') {
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: 'INJECT_AND_OPEN', bets: event.data.bets });
+      if (resp?.ok) window.postMessage({ type: 'JSC_CHECKOUT_ACK' }, event.origin);
+    } catch (e) { console.error('[totoloto-ext]', e); }
+    return;
+  }
 
-  try {
-    const resp = await chrome.runtime.sendMessage({
-      type: 'INJECT_AND_OPEN',
-      bets: event.data.bets,
-    });
-    if (resp?.ok) {
-      window.postMessage({ type: 'JSC_CHECKOUT_ACK' }, event.origin);
-    }
-  } catch (e) {
-    console.error('[totoloto-ext]', e);
+  if (event.data?.type === 'JSC_EM_CHECKOUT') {
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: 'EM_INJECT_AND_OPEN', bets: event.data.bets });
+      if (resp?.ok) window.postMessage({ type: 'JSC_EM_CHECKOUT_ACK' }, event.origin);
+    } catch (e) { console.error('[totoloto-ext]', e); }
+    return;
   }
 });
