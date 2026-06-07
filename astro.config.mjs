@@ -4,6 +4,7 @@ import { writeFileSync, mkdirSync } from 'fs';
 const ARCHIVES = [
   { url: 'https://raw.githubusercontent.com/hmiguel/jsc-history/main/totoloto.jsonl',    local: './src/data/totoloto.jsonl' },
   { url: 'https://raw.githubusercontent.com/hmiguel/jsc-history/main/euromillions.jsonl', local: './src/data/euromillions.jsonl' },
+  { url: 'https://raw.githubusercontent.com/hmiguel/jsc-history/main/eurodreams.jsonl',  local: './src/data/eurodreams.jsonl' },
 ];
 
 const fetchArchive = {

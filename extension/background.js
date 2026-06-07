@@ -3,6 +3,8 @@ const JSC_CART_URL      = 'https://www.jogossantacasa.pt/web/JogarTotoloto/adicC
 const JSC_GAME_URL      = 'https://www.jogossantacasa.pt/web/JogarTotoloto';
 const JSC_EM_CART_URL   = 'https://www.jogossantacasa.pt/web/JogarEuromilhoes/adicCarr';
 const JSC_EM_GAME_URL   = 'https://www.jogossantacasa.pt/web/JogarEuromilhoes';
+const JSC_ED_CART_URL   = 'https://www.jogossantacasa.pt/web/JogarEuroDreams/adicCarr';
+const JSC_ED_GAME_URL   = 'https://www.jogossantacasa.pt/web/JogarEuroDreams';
 const JSC_ORIGIN        = 'https://www.jogossantacasa.pt';
 const SESSION_API       = 'https://totoloto.lixo.dev/api/session';
 
@@ -21,6 +23,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.type === 'EM_INJECT_AND_OPEN') {
     placeEMInCart(msg.bets)
+      .then(() => sendResponse({ ok: true }))
+      .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
+    return true;
+  }
+  if (msg.type === 'ED_INJECT_AND_OPEN') {
+    placeEDInCart(msg.bets)
       .then(() => sendResponse({ ok: true }))
       .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
     return true;
@@ -194,6 +202,69 @@ async function placeEMInCart(bets) {
   });
 
   // 4. Isolate session and open cart
+  await isolateSession(activeCookie);
+  await chrome.tabs.create({ url: JSC_URL });
+}
+
+// EuroDreams draws: Monday (2) and Thursday (5)
+function nextEDDrawWeekDay() {
+  const todayJS = new Date().getDay();
+  for (let offset = 0; offset <= 7; offset++) {
+    const dayJS = (todayJS + offset) % 7;
+    if (dayJS === 1 || dayJS === 4) return dayJS + 1;
+  }
+  return 2;
+}
+
+async function placeEDInCart(bets) {
+  const sessionResp = await fetch(SESSION_API);
+  if (!sessionResp.ok) throw new Error(`Session API failed: HTTP ${sessionResp.status}`);
+  const { sessionId, error } = await sessionResp.json();
+  if (!sessionId) throw new Error(error ?? 'No JSESSIONID returned');
+
+  const existing = await chrome.cookies.getAll({ url: JSC_ORIGIN, name: 'JSESSIONID' });
+  for (const c of existing) {
+    const scheme = c.secure ? 'https' : 'http';
+    const domain = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
+    await chrome.cookies.remove({ url: `${scheme}://${domain}${c.path}`, name: 'JSESSIONID' });
+  }
+  const activeCookie = { value: sessionId, domain: 'www.jogossantacasa.pt', path: '/', secure: true, httpOnly: true, sameSite: 'no_restriction' };
+  await chrome.cookies.set({ url: JSC_ORIGIN, name: 'JSESSIONID', ...activeCookie });
+
+  await isolateSession(activeCookie);
+
+  const weekDay = String(nextEDDrawWeekDay());
+  const parts = [];
+  bets.forEach((bet, i) => {
+    parts.push(`hidNumber${i + 1}=${encodeURIComponent(bet.numbers.join(','))}`);
+    parts.push(`hidExtra${i + 1}=${bet.dream}`);
+  });
+  parts.push(`hidNWager=${bets.length}`);
+  parts.push('hidNLuckyDip=0');
+  parts.push(`hidWeekDay=${weekDay}`);
+  parts.push(`hidDrawWeekDay=${weekDay}`);
+  parts.push('hidGameId=15');
+  parts.push('hidCartItemName=EuroDreams');
+  parts.push('hidNContest=1');
+  parts.push('hidQuickPick=false');
+  parts.push('hidChannel=1');
+  parts.push('keyIdAlt=0');
+  parts.push('hidType=S');
+  const body = parts.join('&');
+
+  await fetch(JSC_ED_CART_URL, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      ...HEADERS,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Referer': JSC_ED_GAME_URL,
+      'Origin':  JSC_ORIGIN,
+    },
+    body,
+    redirect: 'follow',
+  });
+
   await isolateSession(activeCookie);
   await chrome.tabs.create({ url: JSC_URL });
 }

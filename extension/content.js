@@ -36,4 +36,12 @@ window.addEventListener('message', async (event) => {
     } catch (e) { console.error('[totoloto-ext]', e); }
     return;
   }
+
+  if (event.data?.type === 'JSC_ED_CHECKOUT') {
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: 'ED_INJECT_AND_OPEN', bets: event.data.bets });
+      if (resp?.ok) window.postMessage({ type: 'JSC_ED_CHECKOUT_ACK' }, event.origin);
+    } catch (e) { console.error('[totoloto-ext]', e); }
+    return;
+  }
 });
