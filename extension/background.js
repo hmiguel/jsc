@@ -14,36 +14,18 @@ const HEADERS = {
   'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
 };
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === 'INJECT_AND_OPEN') {
-    placeInCart(msg.bets)
-      .then(() => sendResponse({ ok: true }))
-      .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
-    return true;
-  }
-  if (msg.type === 'EM_INJECT_AND_OPEN') {
-    placeEMInCart(msg.bets)
-      .then(() => sendResponse({ ok: true }))
-      .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
-    return true;
-  }
-  if (msg.type === 'ED_INJECT_AND_OPEN') {
-    placeEDInCart(msg.bets)
-      .then(() => sendResponse({ ok: true }))
-      .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
-    return true;
-  }
-  return false;
-});
-
-async function placeInCart(bets) {
-  // 1. Get a fresh anonymous JSESSIONID from our Pages Function
-  const sessionResp = await fetch(SESSION_API);
-  if (!sessionResp.ok) throw new Error(`Session API failed: HTTP ${sessionResp.status}`);
-  const { sessionId, error } = await sessionResp.json();
+// Uses a caller-supplied session ID (from page sessionStorage) or fetches a fresh one.
+async function getOrCreateSession(providedId) {
+  if (providedId) return providedId;
+  const resp = await fetch(SESSION_API);
+  if (!resp.ok) throw new Error(`Session API failed: HTTP ${resp.status}`);
+  const { sessionId, error } = await resp.json();
   if (!sessionId) throw new Error(error ?? 'No JSESSIONID returned');
+  return sessionId;
+}
 
-  // 2. Clear any existing JSC session cookies and set the fresh one
+// Clears all JSC session cookies and installs the given session as the only one.
+async function setupSession(sessionId) {
   const existing = await chrome.cookies.getAll({ url: JSC_ORIGIN, name: 'JSESSIONID' });
   for (const c of existing) {
     const scheme = c.secure ? 'https' : 'http';
@@ -52,8 +34,36 @@ async function placeInCart(bets) {
   }
   const activeCookie = { value: sessionId, domain: 'www.jogossantacasa.pt', path: '/', secure: true, httpOnly: true, sameSite: 'no_restriction' };
   await chrome.cookies.set({ url: JSC_ORIGIN, name: 'JSESSIONID', ...activeCookie });
+  return activeCookie;
+}
 
-  // 4. POST each lucky-number group, isolating to the active session before each request
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'INJECT_AND_OPEN') {
+    placeInCart(msg.bets, msg.sessionId)
+      .then(sessionId => sendResponse({ ok: true, sessionId }))
+      .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
+    return true;
+  }
+  if (msg.type === 'EM_INJECT_AND_OPEN') {
+    placeEMInCart(msg.bets, msg.sessionId)
+      .then(sessionId => sendResponse({ ok: true, sessionId }))
+      .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
+    return true;
+  }
+  if (msg.type === 'ED_INJECT_AND_OPEN') {
+    placeEDInCart(msg.bets, msg.sessionId)
+      .then(sessionId => sendResponse({ ok: true, sessionId }))
+      .catch(e => { console.error('[totoloto-ext]', e); sendResponse({ ok: false, error: e.message }); });
+    return true;
+  }
+  return false;
+});
+
+async function placeInCart(bets, providedSessionId) {
+  const sessionId = await getOrCreateSession(providedSessionId);
+  const activeCookie = await setupSession(sessionId);
+
+  // POST each lucky-number group, isolating to the active session before each request
   const weekDay = String(nextDrawWeekDay());
   const groups = Map.groupBy(bets, b => b.lucky);
   for (const [lucky, group] of groups) {
@@ -97,6 +107,7 @@ async function placeInCart(bets) {
   // 5. Isolate session one last time so the opened tab lands on the right cart
   await isolateSession(activeCookie);
   await chrome.tabs.create({ url: JSC_URL });
+  return sessionId;
 }
 
 // Removes all JSESSIONID cookies except the active one, then restores it.
@@ -143,24 +154,11 @@ function nextEMDrawWeekDay() {
   return 3;
 }
 
-async function placeEMInCart(bets) {
-  // 1. Get a fresh anonymous JSESSIONID
-  const sessionResp = await fetch(SESSION_API);
-  if (!sessionResp.ok) throw new Error(`Session API failed: HTTP ${sessionResp.status}`);
-  const { sessionId, error } = await sessionResp.json();
-  if (!sessionId) throw new Error(error ?? 'No JSESSIONID returned');
+async function placeEMInCart(bets, providedSessionId) {
+  const sessionId = await getOrCreateSession(providedSessionId);
+  const activeCookie = await setupSession(sessionId);
 
-  // 2. Set the session cookie
-  const existing = await chrome.cookies.getAll({ url: JSC_ORIGIN, name: 'JSESSIONID' });
-  for (const c of existing) {
-    const scheme = c.secure ? 'https' : 'http';
-    const domain = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
-    await chrome.cookies.remove({ url: `${scheme}://${domain}${c.path}`, name: 'JSESSIONID' });
-  }
-  const activeCookie = { value: sessionId, domain: 'www.jogossantacasa.pt', path: '/', secure: true, httpOnly: true, sameSite: 'no_restriction' };
-  await chrome.cookies.set({ url: JSC_ORIGIN, name: 'JSESSIONID', ...activeCookie });
-
-  // 3. POST all bets in a single request (no grouping — each bet has unique stars)
+  // POST all bets in a single request (no grouping — each bet has unique stars)
   await isolateSession(activeCookie);
 
   const weekDay = String(nextEMDrawWeekDay());
@@ -204,6 +202,7 @@ async function placeEMInCart(bets) {
   // 4. Isolate session and open cart
   await isolateSession(activeCookie);
   await chrome.tabs.create({ url: JSC_URL });
+  return sessionId;
 }
 
 // EuroDreams draws: Monday (2) and Thursday (5)
@@ -216,20 +215,9 @@ function nextEDDrawWeekDay() {
   return 2;
 }
 
-async function placeEDInCart(bets) {
-  const sessionResp = await fetch(SESSION_API);
-  if (!sessionResp.ok) throw new Error(`Session API failed: HTTP ${sessionResp.status}`);
-  const { sessionId, error } = await sessionResp.json();
-  if (!sessionId) throw new Error(error ?? 'No JSESSIONID returned');
-
-  const existing = await chrome.cookies.getAll({ url: JSC_ORIGIN, name: 'JSESSIONID' });
-  for (const c of existing) {
-    const scheme = c.secure ? 'https' : 'http';
-    const domain = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
-    await chrome.cookies.remove({ url: `${scheme}://${domain}${c.path}`, name: 'JSESSIONID' });
-  }
-  const activeCookie = { value: sessionId, domain: 'www.jogossantacasa.pt', path: '/', secure: true, httpOnly: true, sameSite: 'no_restriction' };
-  await chrome.cookies.set({ url: JSC_ORIGIN, name: 'JSESSIONID', ...activeCookie });
+async function placeEDInCart(bets, providedSessionId) {
+  const sessionId = await getOrCreateSession(providedSessionId);
+  const activeCookie = await setupSession(sessionId);
 
   await isolateSession(activeCookie);
 
@@ -267,4 +255,5 @@ async function placeEDInCart(bets) {
 
   await isolateSession(activeCookie);
   await chrome.tabs.create({ url: JSC_URL });
+  return sessionId;
 }
