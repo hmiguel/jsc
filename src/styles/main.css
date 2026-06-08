@@ -89,14 +89,14 @@ body {
 /* ── Three-column layout ─────────────────────── */
 .layout {
   display: grid;
-  grid-template-columns: 460px 420px 1fr;
+  grid-template-columns: 500px 420px 1fr;
   gap: 1.25rem;
   align-items: start;
 }
 .layout-col { display: flex; flex-direction: column; gap: 1.25rem; }
 
 @media (max-width: 1100px) {
-  .layout { grid-template-columns: 460px 1fr; }
+  .layout { grid-template-columns: 500px 1fr; }
   .layout-col--patterns { grid-column: 1 / -1; }
 }
 @media (max-width: 768px) {
@@ -104,6 +104,31 @@ body {
   .layout-col--patterns { grid-column: auto; }
   .layout-col { min-width: 0; width: 100%; }
 }
+
+/* ── Game nav ───────────────────────────────── */
+.game-nav {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+.game-nav-link {
+  display: inline-flex; align-items: center;
+  padding: .5rem .8rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text);
+  text-decoration: none;
+  transition: background .1s, color .1s;
+  font-family: inherit;
+}
+.game-nav-icon { align-self: center; flex-shrink: 0; }
+.game-nav-link:hover:not(.active) { background: var(--surface-2); }
+.game-nav-link:active:not(.active) { transform: translate(2px,2px); box-shadow: none; }
+.game-nav-link.active { background: var(--primary); color: #fff; }
 
 /* ── Page heading ───────────────────────────── */
 .heading {
@@ -118,6 +143,7 @@ body {
   font-weight: 800;
   color: var(--text);
   letter-spacing: -.5px;
+  flex-basis: 100%;
 }
 .heading-sub {
   flex-basis: 100%;
@@ -427,7 +453,7 @@ body {
 }
 .number-tag small {
   font-size: .55rem; font-weight: 500;
-  color: var(--muted); margin-top: 1px;
+  color: inherit; opacity: .75; margin-top: 1px;
 }
 
 /* ── Strategy pills ──────────────────────────── */
@@ -653,9 +679,9 @@ body {
 
 /* ── Cart panel ──────────────────────────────── */
 .cart-panel {
-  position: fixed;
-  top: 4.5rem;
-  right: max(1.25rem, calc((100vw - 1400px) / 2 + 1.25rem));
+  position: absolute;
+  top: calc(100% + .5rem);
+  right: 0;
   z-index: 399;
   width: 420px;
   max-width: calc(100vw - 2.5rem);
@@ -1065,13 +1091,11 @@ body {
 }
 .footer-gh:hover { color: var(--primary); }
 .top-actions {
-  position: fixed;
-  top: 1.25rem;
-  right: max(1.25rem, calc((100vw - 1400px) / 2 + 1.25rem));
-  z-index: 400;
   display: flex;
   align-items: center;
   gap: .5rem;
+  margin-left: auto;
+  position: relative;
 }
 
 .bmc-btn {
@@ -1091,30 +1115,50 @@ body {
 .build-sha:hover { color:var(--primary); }
 
 @media (max-width: 768px) {
+  /* Cart requires the extension — hide entirely on mobile */
   .cart-toggle,
   .cart-panel,
   .chave-annotation .btn-add-cart,
   #smart-results-header { display: none !important; }
 
-  .top-actions {
-    position: static;
-    margin-left: auto;
-    top: auto;
-    right: auto;
+  .page {
+    padding: 0 .75rem 2rem;
+    overflow-x: hidden;
   }
 
   .heading {
     padding-top: .75rem;
     padding-bottom: .5rem;
-    width: 100%;
-    overflow: hidden;
+  }
+  .heading h1 { font-size: 1.3rem; }
+
+  /* Compact header row — everything fits on one line */
+  .game-nav-icon { display: none; }
+  .game-nav-link { padding: .4rem .5rem; font-size: .72rem; }
+  .bmc-btn span  { display: none; }
+  .bmc-btn { padding: .5rem .6rem; }
+
+  /* Smaller balls so 5 + sep + 2 stars fit on narrow screens */
+  .ball  { width: 34px; height: 34px; font-size: .75rem; }
+  .balls { gap: .3rem; }
+  .line  { padding: .65rem 1rem; gap: .5rem; }
+  .line-label { width: 3rem; }
+
+  /* Strategy pills — wrap 3+2 instead of overflowing */
+  .strategy-pills {
+    flex-wrap: wrap;
+    gap: .3rem;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .strategy-pill {
+    flex: 1 1 30%;
+    border: 2px solid var(--border);
+    box-shadow: 2px 2px 0 #111;
   }
 
-  .heading h1 {
-    font-size: 1.3rem;
-  }
-
-  .page {
-    overflow-x: hidden;
-  }
+  /* Annotation — bigger touch targets for refresh/remove */
+  .chave-annotation { gap: .45rem; padding: .2rem 1rem .5rem; }
+  .btn-refresh { width: 2.75rem; height: 2.75rem; }
 }
