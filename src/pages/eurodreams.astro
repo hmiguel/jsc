@@ -877,9 +877,10 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
 
   (function() {
     let saved = [];
-    try { saved = JSON.parse(localStorage.getItem('jsc-ed-cart') || '[]'); } catch (e) {}
-    if (saved.length > 0) {
-      saved.forEach((bet, i) => {
+    try { saved = JSON.parse(localStorage.getItem('jsc-cart') || '[]'); } catch (e) {}
+    const myBets = saved.filter((b) => b.game === 'eurodreams');
+    if (myBets.length > 0) {
+      myBets.forEach((bet, i) => {
         const tmp = document.createElement('div');
         tmp.innerHTML = renderSmartLine(bet.numbers, bet.dream, i, bet.strategy || '');
         results.appendChild(tmp.firstElementChild);
@@ -950,8 +951,12 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
 
 <!-- ── Cart script ──────────────────────── -->
 <script>
-  const CART_KEY = 'jsc-ed-cart';
-  const cart: { numbers: number[]; dream: number }[] = (() => {
+  const CART_KEY = 'jsc-cart';
+  const MY_GAME = 'eurodreams';
+  const BET_PRICES: Record<string, number> = { totoloto: 1.00, euromilhoes: 2.50, eurodreams: 2.50 };
+  const GAME_LABELS: Record<string, string> = { totoloto: 'Totoloto', euromilhoes: 'Euromilhões', eurodreams: 'EuroDreams' };
+  const BALL_COLORS: Record<string, string> = { totoloto: '#008dd0', euromilhoes: '#004f93', eurodreams: '#6e368c' };
+  const cart: { game: string; numbers: number[]; stars?: number[]; lucky?: number; dream?: number }[] = (() => {
     try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch { return []; }
   })();
 
@@ -979,32 +984,45 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
   window.addEventListener('message', onExtReady);
   window.postMessage({ type: 'JSC_EXT_PING' }, '*');
 
-  const BET_PRICE = 2.50;
-
   function renderCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
     const n = cart.length;
+
     if (n > 0 && !checkoutBtn.disabled) {
       checkoutStatus.textContent = '';
       checkoutStatus.className = 'checkout-status';
     }
     cartBadgeEl.textContent = String(n);
     cartBadgeEl.hidden = n === 0;
+    const total = cart.reduce((sum, b) => sum + (BET_PRICES[b.game] || 0), 0);
     cartTotalEl.textContent = n > 0
-      ? `${n} aposta${n > 1 ? 's' : ''} · ${(n * BET_PRICE).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
+      ? `${n} aposta${n > 1 ? 's' : ''} · ${total.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}`
       : '';
     cartToggle.classList.toggle('has-items', n > 0);
     if (n === 0) { cartPanel.hidden = true; cartToggle.setAttribute('aria-expanded', 'false'); }
     checkoutBtn.hidden = n === 0;
     (document.getElementById('cart-clear') as HTMLButtonElement).hidden = n === 0;
 
+    const gameCounters: Record<string, number> = {};
     cartItemsEl.innerHTML = cart.map((bet, i) => {
-      const balls = bet.numbers.map(n => `<span class="cart-ball">${n}</span>`).join('');
-      const dreamBall = `<span class="cart-ball cart-ball--lucky">${bet.dream}</span>`;
+      if (!gameCounters[bet.game]) gameCounters[bet.game] = 0;
+      gameCounters[bet.game]++;
+      const chave = gameCounters[bet.game];
+      const label = `${GAME_LABELS[bet.game] || bet.game} · ${chave}`;
+      const ballColor = BALL_COLORS[bet.game] || '#008dd0';
+      const balls = bet.numbers.map(n => `<span class="cart-ball" style="background:${ballColor}">${n}</span>`).join('');
+      let secondary = '';
+      if (bet.game === 'euromilhoes' && bet.stars) {
+        secondary = bet.stars.map(s => `<span class="cart-ball cart-ball--lucky">${s}</span>`).join('');
+      } else if (bet.game === 'totoloto' && bet.lucky != null) {
+        secondary = `<span class="cart-ball cart-ball--lucky">${bet.lucky}</span>`;
+      } else if (bet.game === 'eurodreams' && bet.dream != null) {
+        secondary = `<span class="cart-ball cart-ball--lucky">${bet.dream}</span>`;
+      }
       return `
         <div class="cart-item">
-          <span class="cart-item-label">Chave ${i + 1}</span>
-          <div class="cart-balls">${balls}<span class="cart-balls-sep">+</span>${dreamBall}</div>
+          <span class="cart-item-label">${label}</span>
+          <div class="cart-balls">${balls}<span class="cart-balls-sep">+</span>${secondary}</div>
           <button class="btn-cart-remove" data-idx="${i}" aria-label="Remover aposta ${i + 1}">✕</button>
         </div>`;
     }).join('');
@@ -1059,7 +1077,7 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
       if (!btn) return;
       const numbers = entry.dataset.numbers!.split(',').map(Number);
       const dream   = Number(entry.dataset.dream!);
-      const inCart  = cart.some(b => b.numbers.join() === numbers.join() && b.dream === dream);
+      const inCart  = cart.some(b => b.game === MY_GAME && b.numbers.join() === numbers.join() && b.dream === dream);
       btn.innerHTML = inCart ? CART_REMOVE_ICON : CART_ADD_ICON;
       const cartLabel = inCart ? 'Remover do carrinho' : 'Adicionar ao carrinho';
       btn.setAttribute('aria-label', cartLabel);
@@ -1082,9 +1100,9 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
       if (!entry) return;
       const numbers = entry.dataset.numbers!.split(',').map(Number);
       const dream   = Number(entry.dataset.dream!);
-      const idx = cart.findIndex(b => b.numbers.join() === numbers.join() && b.dream === dream);
+      const idx = cart.findIndex(b => b.game === MY_GAME && b.numbers.join() === numbers.join() && b.dream === dream);
       if (idx === -1) {
-        cart.push({ numbers, dream });
+        cart.push({ game: MY_GAME, numbers, dream });
       } else {
         cart.splice(idx, 1);
       }
@@ -1110,8 +1128,8 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
     smartResults.querySelectorAll<HTMLElement>('[data-numbers]').forEach(entry => {
       const numbers = entry.dataset.numbers!.split(',').map(Number);
       const dream   = Number(entry.dataset.dream!);
-      const alreadyIn = cart.some(b => b.numbers.join() === numbers.join() && b.dream === dream);
-      if (!alreadyIn) cart.push({ numbers, dream });
+      const alreadyIn = cart.some(b => b.game === MY_GAME && b.numbers.join() === numbers.join() && b.dream === dream);
+      if (!alreadyIn) cart.push({ game: MY_GAME, numbers, dream });
     });
     const addAllBtn = document.getElementById('btn-add-all') as HTMLButtonElement;
     addAllBtn.textContent = '✓ todas';
@@ -1125,6 +1143,23 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
     renderCart();
   });
 
+  // ── Session cache ─────────────────────────────
+  const SESSION_KEY = 'jsc-ext-session';
+  const SESSION_TTL = 4 * 60 * 1000;
+  const getCachedSession = (): string | null => {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const { id, ts } = JSON.parse(raw);
+      if (Date.now() - ts < SESSION_TTL) return id;
+      localStorage.removeItem(SESSION_KEY);
+    } catch {}
+    return null;
+  };
+  const cacheSession = (id: string) => {
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify({ id, ts: Date.now() })); } catch {}
+  };
+
   checkoutBtn.addEventListener('click', async () => {
     if (cart.length === 0) return;
     checkoutBtn.disabled = true;
@@ -1132,33 +1167,48 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
     checkoutStatus.className = 'checkout-status';
     checkoutStatus.textContent = '';
 
-    const ack = await new Promise<boolean>(resolve => {
-      const listener = (e: MessageEvent) => {
-        if (e.data?.type === 'JSC_ED_CHECKOUT_ACK') {
-          window.removeEventListener('message', listener);
-          resolve(true);
-        }
-      };
-      window.addEventListener('message', listener);
-      window.postMessage({ type: 'JSC_ED_CHECKOUT', bets: [...cart] }, '*');
-      setTimeout(() => { window.removeEventListener('message', listener); resolve(false); }, 15000);
-    });
+    let ok = false;
+    try {
+      let sessionId: string | null = getCachedSession();
+      for (const game of ['totoloto', 'euromilhoes', 'eurodreams'] as const) {
+        const bets = cart.filter(b => b.game === game);
+        if (bets.length === 0) continue;
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game, bets, sessionId }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Checkout failed');
+        sessionId = data.sessionId;
+      }
+      if (sessionId) {
+        cacheSession(sessionId);
+        await new Promise<void>(resolve => {
+          const listener = (e: MessageEvent) => {
+            if (e.data?.type === 'JSC_SET_SESSION_ACK') {
+              window.removeEventListener('message', listener);
+              resolve();
+            }
+          };
+          window.addEventListener('message', listener);
+          window.postMessage({ type: 'JSC_SET_SESSION', sessionId }, '*');
+          setTimeout(() => { window.removeEventListener('message', listener); resolve(); }, 3000);
+        });
+        window.open('https://www.jogossantacasa.pt/web/JogarApostar/', '_blank');
+        ok = true;
+      }
+    } catch {}
 
-    if (ack) {
+    if (ok) {
       cart.length = 0;
-      localStorage.setItem(CART_KEY, '[]');
       (document.getElementById('smart-results') as HTMLElement).innerHTML = '';
-      cartBadgeEl.hidden = true;
-      cartBadgeEl.textContent = '0';
-      cartTotalEl.textContent = '';
-      cartToggle.classList.remove('has-items');
+      renderCart();
       cartItemsEl.innerHTML = `<div class="cart-success">Apostas enviadas com sucesso! Boa sorte!<br><span>Confira sempre os boletins antes de pagar.</span></div>`;
-      checkoutBtn.hidden = true;
-      (document.getElementById('cart-clear') as HTMLButtonElement).hidden = true;
-      checkoutStatus.textContent = '';
-      checkoutStatus.className = 'checkout-status';
       cartPanel.hidden = false;
       cartToggle.setAttribute('aria-expanded', 'true');
+      checkoutStatus.textContent = '';
+      checkoutStatus.className = 'checkout-status';
     } else {
       checkoutStatus.className = 'checkout-status err';
       checkoutStatus.textContent = 'Ocorreu um erro inesperado. Tenta novamente.';
