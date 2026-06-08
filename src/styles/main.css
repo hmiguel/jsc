@@ -112,6 +112,7 @@ body {
   align-items: center;
 }
 .game-nav-link {
+  display: inline-flex; align-items: center;
   padding: .5rem .8rem;
   background: var(--surface);
   border: 2px solid var(--border);
@@ -1114,23 +1115,50 @@ body {
 .build-sha:hover { color:var(--primary); }
 
 @media (max-width: 768px) {
+  /* Cart requires the extension — hide entirely on mobile */
   .cart-toggle,
   .cart-panel,
   .chave-annotation .btn-add-cart,
   #smart-results-header { display: none !important; }
 
+  .page {
+    padding: 0 .75rem 2rem;
+    overflow-x: hidden;
+  }
+
   .heading {
     padding-top: .75rem;
     padding-bottom: .5rem;
-    width: 100%;
-    overflow: hidden;
+  }
+  .heading h1 { font-size: 1.3rem; }
+
+  /* Compact header row — everything fits on one line */
+  .game-nav-icon { display: none; }
+  .game-nav-link { padding: .4rem .5rem; font-size: .72rem; }
+  .bmc-btn span  { display: none; }
+  .bmc-btn { padding: .5rem .6rem; }
+
+  /* Smaller balls so 5 + sep + 2 stars fit on narrow screens */
+  .ball  { width: 34px; height: 34px; font-size: .75rem; }
+  .balls { gap: .3rem; }
+  .line  { padding: .65rem 1rem; gap: .5rem; }
+  .line-label { width: 3rem; }
+
+  /* Strategy pills — wrap 3+2 instead of overflowing */
+  .strategy-pills {
+    flex-wrap: wrap;
+    gap: .3rem;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .strategy-pill {
+    flex: 1 1 30%;
+    border: 2px solid var(--border);
+    box-shadow: 2px 2px 0 #111;
   }
 
-  .heading h1 {
-    font-size: 1.3rem;
-  }
-
-  .page {
-    overflow-x: hidden;
-  }
+  /* Annotation — bigger touch targets for refresh/remove */
+  .chave-annotation { gap: .45rem; padding: .2rem 1rem .5rem; }
+  .btn-refresh { width: 2.75rem; height: 2.75rem; }
 }
