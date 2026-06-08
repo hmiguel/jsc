@@ -312,6 +312,10 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
         <input type="checkbox" id="avoid-repeats" checked />
         <span>Evitar repetições do último sorteio</span>
       </label>
+      <label class="avoid-row">
+        <input type="checkbox" id="fixed-lucky" />
+        <span>Mesmo número da sorte em todas as chaves</span>
+      </label>
 
       <div class="field" style="margin-top:.75rem">
         <label for="smart-lines-input">Número de chaves</label>
@@ -856,6 +860,15 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
 
   // ── State ────────────────────────────────────
   let currentStrategy = 'aleatória';
+  let sharedLucky = null;
+
+  function getLuckyForBet(luckyW) {
+    if (document.getElementById('fixed-lucky').checked) {
+      if (sharedLucky === null) sharedLucky = pickLucky(luckyW);
+      return sharedLucky;
+    }
+    return pickLucky(luckyW);
+  }
 
   function pickWithFilter(excluded) {
     const { pick } = strategies[currentStrategy];
@@ -877,7 +890,26 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
       btn.setAttribute('aria-pressed', 'true');
       currentStrategy = btn.dataset.strategy;
       document.getElementById('strategy-desc').textContent = descs[currentStrategy];
+      if (document.getElementById('fixed-lucky').checked) {
+        sharedLucky = pickLucky(strategies[currentStrategy].luckyW);
+      }
     });
+  });
+
+  document.getElementById('fixed-lucky').addEventListener('change', function() {
+    const { luckyW } = strategies[currentStrategy];
+    if (this.checked) {
+      const first = results.querySelector('.bet-entry');
+      sharedLucky = first ? Number(first.dataset.lucky) : pickLucky(luckyW);
+      results.querySelectorAll('.bet-entry').forEach(entry => {
+        entry.dataset.lucky = String(sharedLucky);
+        const luckyBall = entry.querySelector('.ball--lucky');
+        if (luckyBall) luckyBall.textContent = String(sharedLucky);
+      });
+      syncBetButtons();
+    } else {
+      sharedLucky = null;
+    }
   });
 
   // Stepper buttons
@@ -909,7 +941,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     } else {
       const { luckyW } = strategies[currentStrategy];
       const tmp = document.createElement('div');
-      tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), pickLucky(luckyW), 0, currentStrategy);
+      tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), getLuckyForBet(luckyW), 0, currentStrategy);
       results.appendChild(tmp.firstElementChild);
     }
     linesInput.value = rowCount();
@@ -920,7 +952,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
   function addRow() {
     const { luckyW } = strategies[currentStrategy];
     const tmp = document.createElement('div');
-    tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), pickLucky(luckyW), nextIndex(), currentStrategy);
+    tmp.innerHTML = renderSmartLine(pickWithFilter(getExcluded()), getLuckyForBet(luckyW), nextIndex(), currentStrategy);
     results.appendChild(tmp.firstElementChild);
     linesInput.value = rowCount();
   }
@@ -968,7 +1000,7 @@ function cellStyle(draws: number, max: number, isLucky: boolean) {
     const excluded    = avoidRepeat ? new Set(lastDraw.numbers) : new Set();
     const { luckyW }  = strategies[currentStrategy];
     const tmp = document.createElement('div');
-    tmp.innerHTML = renderSmartLine(pickWithFilter(excluded), pickLucky(luckyW), index, currentStrategy);
+    tmp.innerHTML = renderSmartLine(pickWithFilter(excluded), getLuckyForBet(luckyW), index, currentStrategy);
     entry.replaceWith(tmp.firstElementChild);
   });
 </script>
