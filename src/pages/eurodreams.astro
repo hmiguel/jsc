@@ -968,6 +968,7 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
   const checkoutBtn    = document.getElementById('checkout-btn') as HTMLButtonElement;
   const checkoutStatus = document.getElementById('checkout-status')!;
   const smartResults   = document.getElementById('smart-results')!;
+  const editOverlay    = document.getElementById('edit-modal-overlay')!;
 
   checkoutBtn.disabled = true;
   checkoutStatus.textContent = 'Extensão Chrome não instalada';
@@ -1022,7 +1023,7 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
       return `
         <div class="cart-item">
           <span class="cart-item-label">${label}</span>
-          <div class="cart-balls">${balls}<span class="cart-balls-sep">+</span>${secondary}</div>
+          <div class="cart-balls" data-edit-idx="${i}" tabindex="0" role="button" aria-label="Editar aposta ${i + 1}">${balls}<span class="cart-balls-sep">+</span>${secondary}</div>
           <button class="btn-cart-remove" data-idx="${i}" aria-label="Remover aposta ${i + 1}">✕</button>
         </div>`;
     }).join('');
@@ -1032,6 +1033,16 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
         e.stopPropagation();
         cart.splice(Number(btn.dataset.idx), 1);
         renderCart();
+      });
+    });
+
+    cartItemsEl.querySelectorAll<HTMLElement>('[data-edit-idx]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        openEditModal(Number(el.dataset.editIdx));
+      });
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEditModal(Number(el.dataset.editIdx)); }
       });
     });
 
@@ -1060,11 +1071,209 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
   });
 
   document.addEventListener('click', e => {
-    if (!cartPanel.hidden && !cartPanel.contains(e.target as Node)) closeCart();
+    if (!cartPanel.hidden && !cartPanel.contains(e.target as Node) && !editOverlay.contains(e.target as Node)) closeCart();
   });
 
   cartPanel.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape') closeCart();
+  });
+
+  // ── Edit bet modal ────────────────────────────
+  const EDIT_CONFIGS: Record<string, { mainMax: number; mainCount: number; mainCols: number; secondaryLabel: string; secondaryMax: number; secondaryCount: number; secondaryCols: number; secondaryName: string }> = {
+    totoloto:    { mainMax: 49, mainCount: 5, mainCols: 7,  secondaryLabel: 'Sorte (1–13)',    secondaryMax: 13, secondaryCount: 1, secondaryCols: 7,  secondaryName: 'sorte'    },
+    euromilhoes: { mainMax: 50, mainCount: 5, mainCols: 6, secondaryLabel: 'Estrelas (1–12)', secondaryMax: 12, secondaryCount: 2, secondaryCols: 6,  secondaryName: 'estrelas' },
+    eurodreams:  { mainMax: 40, mainCount: 6, mainCols: 8,  secondaryLabel: 'Sonho (1–5)',     secondaryMax: 5,  secondaryCount: 1, secondaryCols: 5,  secondaryName: 'sonho'    },
+  };
+
+  let editBetIdx = -1;
+  let editGame = '';
+  let editTarget: 'cart' | 'entry' = 'cart';
+  let editEntryEl: HTMLElement | null = null;
+  let editMainSel = new Set<number>();
+  let editSecondarySel = new Set<number>();
+
+  const editTitleEl   = document.getElementById('edit-modal-title')!;
+  const editBody      = document.getElementById('edit-modal-body')!;
+  const editCountEl   = document.getElementById('edit-modal-count')!;
+  const editStatsEl      = document.getElementById('edit-modal-stats')!;
+  const editClose     = document.getElementById('edit-modal-close')!;
+  const editCancel    = document.getElementById('edit-modal-cancel')!;
+  const editSaveBtn   = document.getElementById('edit-modal-save') as HTMLButtonElement;
+
+  function openEditModal(betIdx: number) {
+    const bet = cart[betIdx];
+    if (!bet || !EDIT_CONFIGS[bet.game]) return;
+    editBetIdx = betIdx;
+    editGame = bet.game;
+    editTarget = 'cart';
+    editEntryEl = null;
+    editMainSel = new Set(bet.numbers);
+    if (bet.game === 'euromilhoes') editSecondarySel = new Set(bet.stars ?? []);
+    else if (bet.game === 'totoloto') editSecondarySel = new Set(bet.lucky != null ? [bet.lucky] : []);
+    else editSecondarySel = new Set(bet.dream != null ? [bet.dream] : []);
+
+    const gc: Record<string, number> = {};
+    for (let i = 0; i <= betIdx; i++) gc[cart[i].game] = (gc[cart[i].game] || 0) + 1;
+    editTitleEl.textContent = `${GAME_LABELS[bet.game]} · Chave ${gc[bet.game]}`;
+
+    renderEditBody();
+    editOverlay.hidden = false;
+    editSaveBtn.focus();
+  }
+
+  function openEditModalForEntry(entry: HTMLElement) {
+    editBetIdx = -1;
+    editGame = MY_GAME;
+    editTarget = 'entry';
+    editEntryEl = entry;
+    editMainSel = new Set(entry.dataset.numbers!.split(',').map(Number));
+    if (MY_GAME === 'euromilhoes') {
+      editSecondarySel = new Set((entry.dataset.stars || '').split(',').map(Number).filter(Boolean));
+    } else if (MY_GAME === 'totoloto') {
+      const lucky = Number(entry.dataset.lucky);
+      editSecondarySel = lucky ? new Set([lucky]) : new Set();
+    } else {
+      const dream = Number(entry.dataset.dream);
+      editSecondarySel = dream ? new Set([dream]) : new Set();
+    }
+    editTitleEl.textContent = `Chave ${Number(entry.dataset.index) + 1}`;
+    renderEditBody();
+    editOverlay.hidden = false;
+    editSaveBtn.focus();
+  }
+
+  function renderEditBody() {
+    const cfg = EDIT_CONFIGS[editGame];
+    const mainColor = BALL_COLORS[editGame] || '#008dd0';
+
+    const mainGrid = Array.from({ length: cfg.mainMax }, (_, i) => {
+      const n = i + 1;
+      const sel = editMainSel.has(n);
+      return `<div class="ball${sel ? ' selected' : ''}" data-n="${n}" data-type="main" role="button" tabindex="0" aria-pressed="${sel}"${sel ? ` style="background:${mainColor}"` : ''}>${n}</div>`;
+    }).join('');
+
+    const secGrid = Array.from({ length: cfg.secondaryMax }, (_, i) => {
+      const n = i + 1;
+      const sel = editSecondarySel.has(n);
+      return `<div class="ball${sel ? ' selected' : ''}" data-n="${n}" data-type="secondary" role="button" tabindex="0" aria-pressed="${sel}"${sel ? ' style="background:var(--primary)"' : ''}>${n}</div>`;
+    }).join('');
+
+    editBody.innerHTML = `
+      <div>
+        <div class="edit-modal-section-label">Números (1–${cfg.mainMax})</div>
+        <div class="edit-modal-grid" style="grid-template-columns:repeat(${cfg.mainCols},40px)">${mainGrid}</div>
+      </div>
+      <div>
+        <div class="edit-modal-section-label">${cfg.secondaryLabel}</div>
+        <div class="edit-modal-grid" style="grid-template-columns:repeat(${cfg.secondaryCols},40px)">${secGrid}</div>
+      </div>`;
+
+    editBody.querySelectorAll<HTMLElement>('.ball[data-n]').forEach(ball => {
+      ball.addEventListener('click', () => toggleEditBall(ball));
+      ball.addEventListener('keydown', e => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleEditBall(ball); }
+      });
+    });
+
+    updateEditCount();
+  }
+
+  function toggleEditBall(ball: HTMLElement) {
+    const n = Number(ball.dataset.n);
+    const cfg = EDIT_CONFIGS[editGame];
+    const mainColor = BALL_COLORS[editGame] || '#008dd0';
+
+    if (ball.dataset.type === 'main') {
+      if (editMainSel.has(n)) {
+        editMainSel.delete(n);
+        ball.classList.remove('selected');
+        ball.style.background = '';
+      } else {
+        if (editMainSel.size >= cfg.mainCount) return;
+        editMainSel.add(n);
+        ball.classList.add('selected');
+        ball.style.background = mainColor;
+      }
+      ball.setAttribute('aria-pressed', String(editMainSel.has(n)));
+    } else {
+      if (editSecondarySel.has(n)) {
+        editSecondarySel.delete(n);
+        ball.classList.remove('selected');
+        ball.style.background = '';
+      } else {
+        if (cfg.secondaryCount === 1) {
+          editSecondarySel.clear();
+          editBody.querySelectorAll<HTMLElement>('[data-type="secondary"].selected').forEach(b => {
+            b.classList.remove('selected'); b.style.background = ''; b.setAttribute('aria-pressed', 'false');
+          });
+        } else if (editSecondarySel.size >= cfg.secondaryCount) {
+          return;
+        }
+        editSecondarySel.add(n);
+        ball.classList.add('selected');
+        ball.style.background = 'var(--primary)';
+      }
+      ball.setAttribute('aria-pressed', String(editSecondarySel.has(n)));
+    }
+    updateEditCount();
+  }
+
+  function updateEditCount() {
+    const cfg = EDIT_CONFIGS[editGame];
+    editCountEl.textContent = `${editMainSel.size}/${cfg.mainCount} números · ${editSecondarySel.size}/${cfg.secondaryCount} ${cfg.secondaryName}`;
+    editSaveBtn.disabled = editMainSel.size !== cfg.mainCount || editSecondarySel.size !== cfg.secondaryCount;
+    const nums = Array.from(editMainSel);
+    if (nums.length === 0) { editStatsEl.innerHTML = ''; return; }
+    const mid    = Math.floor(cfg.mainMax / 2);
+    const odd    = nums.filter(n => n % 2 !== 0).length;
+    const high   = nums.filter(n => n > mid).length;
+    const sum    = nums.reduce((a, b) => a + b, 0);
+    const isED   = editGame === 'eurodreams';
+    const oddOk  = isED ? (odd >= 2 && odd <= 4) : (odd >= 2 && odd <= 3);
+    const highOk = isED ? (high >= 2 && high <= 4) : (high >= 2 && high <= 3);
+    const _p10   = Number(editOverlay.dataset.sumP10);
+    const _p90   = Number(editOverlay.dataset.sumP90);
+    const sumOk  = sum >= _p10 && sum <= _p90;
+    editStatsEl.innerHTML =
+      `<span class="${oddOk  ? 'ann-ok' : 'ann-warn'}">${odd}í+${nums.length - odd}p</span>` +
+      `<span class="${highOk ? 'ann-ok' : 'ann-warn'}">${nums.length - high}bx+${high}alt</span>` +
+      `<span class="${sumOk  ? 'ann-ok' : 'ann-warn'}">Σ ${sum}</span>`;
+  }
+
+  function closeEditModal() {
+    editOverlay.hidden = true;
+    editBetIdx = -1;
+    editEntryEl = null;
+  }
+
+  editClose.addEventListener('click', closeEditModal);
+  editCancel.addEventListener('click', closeEditModal);
+  editOverlay.addEventListener('click', e => { if (e.target === editOverlay) closeEditModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !editOverlay.hidden) { e.stopPropagation(); closeEditModal(); } });
+
+  editSaveBtn.addEventListener('click', () => {
+    const nums = Array.from(editMainSel).sort((a, b) => a - b);
+    const sec  = Array.from(editSecondarySel).sort((a, b) => a - b);
+    if (editTarget === 'cart') {
+      if (editBetIdx < 0 || editBetIdx >= cart.length) return;
+      const bet = cart[editBetIdx];
+      bet.numbers = nums;
+      if (bet.game === 'euromilhoes') bet.stars = sec;
+      else if (bet.game === 'totoloto') bet.lucky = sec[0];
+      else bet.dream = sec[0];
+      closeEditModal();
+      renderCart();
+    } else if (editEntryEl) {
+      editEntryEl.dataset.numbers = nums.join(',');
+      if (MY_GAME === 'euromilhoes') editEntryEl.dataset.stars = sec.join(',');
+      else if (MY_GAME === 'totoloto') editEntryEl.dataset.lucky = String(sec[0]);
+      else editEntryEl.dataset.dream = String(sec[0]);
+      const mainBalls = nums.map(n => `<span class="ball">${n}</span>`).join('');
+      const secBalls = `<span class="ball ball--lucky">${sec[0]}</span>`;
+      editEntryEl.querySelector('.balls')!.innerHTML = `${mainBalls}<span class="balls-sep">+</span>${secBalls}`;
+      closeEditModal();
+      syncBetButtons();
+    }
   });
 
   const CART_ADD_ICON    = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.2,9h1.6V6.8H16V5.2H13.8V3H12.2V5.2H10V6.8h2.2Z"/><path d="M20,5v5.5L7.45,12.72,5,3H1.25a1,1,0,0,0,0,2H3.47L6.7,18H20V16H8.26l-.33-1.33L22,12.18V5ZM7,19a1.5,1.5,0,1,0,1.5,1.5A1.5,1.5,0,0,0,7,19Zm12,0a1.5,1.5,0,1,0,1.5,1.5A1.5,1.5,0,0,0,19,19Z"/></svg>`;
@@ -1111,7 +1320,19 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
     });
   }
 
+  function setupEditListeners(containerId: string) {
+    document.getElementById(containerId)!.addEventListener('click', e => {
+      const ballsEl = (e.target as HTMLElement).closest<HTMLElement>('.balls');
+      if (!ballsEl) return;
+      const entry = ballsEl.closest<HTMLElement>('[data-numbers]');
+      if (!entry) return;
+      e.stopPropagation();
+      openEditModalForEntry(entry);
+    });
+  }
+
   setupAddListeners('smart-results');
+  setupEditListeners('smart-results');
   renderCart();
 
   const resultsHeader = document.getElementById('smart-results-header')!;
@@ -1317,6 +1538,28 @@ function cellStyle(draws: number, max: number, isDream: boolean) {
     }
   });
 </script>
+
+
+<!-- ── Edit bet modal ─────────────────────── -->
+<div id="edit-modal-overlay" class="edit-modal-overlay" hidden data-sum-p10={sumP10} data-sum-p90={sumP90}>
+  <div id="edit-modal" class="edit-modal" role="dialog" aria-labelledby="edit-modal-title" aria-modal="true">
+    <div class="edit-modal-header">
+      <span id="edit-modal-title" class="edit-modal-title"></span>
+      <button id="edit-modal-close" class="edit-modal-close" aria-label="Fechar">✕</button>
+    </div>
+    <div class="edit-modal-body" id="edit-modal-body"></div>
+    <div class="edit-modal-annotation" id="edit-modal-annotation">
+      <div id="edit-modal-stats"></div>
+      <span class="edit-modal-count" id="edit-modal-count"></span>
+    </div>
+    <div class="edit-modal-footer">
+      <div class="edit-modal-actions">
+        <button id="edit-modal-cancel" class="btn-cancel">Cancelar</button>
+        <button id="edit-modal-save" class="btn-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
